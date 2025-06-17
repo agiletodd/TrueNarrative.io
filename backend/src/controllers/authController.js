@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
 
+const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
 
 export async function register(req, res) {
@@ -59,7 +59,6 @@ export async function register(req, res) {
 
 export async function login(req, res) {
   const { email, password } = req.body;
-
   try {
     const user = await prisma.user.findUnique({ where: { email } });
 
@@ -77,10 +76,9 @@ export async function login(req, res) {
       data: { lastLogin: new Date() },
     });
 
-    const token = jwt.sign(
-      { userId: user.id, role: user.role },
-      process.env.JWT_SECRET
-    );
+    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     res.json({
       token,
@@ -89,6 +87,8 @@ export async function login(req, res) {
         email: user.email,
         firstname: user.firstname,
         lastname: user.lastname,
+        avatarUrl: user.avatarUrl,
+        bio: user.bio,
         role: user.role,
       },
     });

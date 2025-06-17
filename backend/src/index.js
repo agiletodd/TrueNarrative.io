@@ -1,15 +1,23 @@
-import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
+
+import express from "express";
 import cors from "cors";
-import feedbackRoutes from "./routes/feedbackRoutes.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import authRouter from "./routes/authRoutes.js";
-
-dotenv.config();
+import feedbackRoutes from "./routes/feedbackRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
 
 const app = express();
-app.use(cors());
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+    exposedHeaders: ["Authorization"],
+  })
+);
 app.use(express.json());
 
 // Needed for __dirname in ES Modules
@@ -21,13 +29,10 @@ app.use(express.static(path.join(__dirname, "../public")));
 
 app.use("/api/auth", authRouter);
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api/products", productRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-app.get("/", (req, res) => {
-  res.send("API is running");
 });
 
 const PORT = process.env.PORT || 4000;
