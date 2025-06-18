@@ -6,7 +6,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import authRouter from "./routes/authRoutes.js";
-import feedbackRoutes from "./routes/feedbackRoutes.js";
+import ideaRoutes from "./routes/ideaRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 
 const app = express();
@@ -28,7 +28,7 @@ const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, "../public")));
 
 app.use("/api/auth", authRouter);
-app.use("/api/feedback", feedbackRoutes);
+app.use("/api/ideas", ideaRoutes);
 app.use("/api/products", productRoutes);
 
 app.get("/health", (req, res) => {

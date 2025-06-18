@@ -1,48 +1,95 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import IdeaCard from "./_IdeaCard";
+import IdeaForm from "./_IdeaForm";
 
-const fakeIdeas = [
-  {
-    id: 1,
-    title: "Add dark mode support",
-    description: "Many users prefer dark mode for better readability at night.",
-    status: "Planned",
-    upvotes: 34,
-    downvotes: 2,
-  },
-  {
-    id: 2,
-    title: "Integrate Slack notifications",
-    description: "Get real-time alerts in Slack when feedback is updated.",
-    status: "Under Review",
-    upvotes: 21,
-    downvotes: 1,
-  },
-  {
-    id: 3,
-    title: "Public voting system",
-    description: "Let users upvote the ideas they care about most.",
-    status: "Released",
-    upvotes: 55,
-    downvotes: 0,
-  },
-  {
-    id: 4,
-    title: "Add mobile push notifications",
-    description: "Notify users about updates directly on their phones.",
-    status: "Planned",
-    upvotes: 14,
-    downvotes: 3,
-  },
-];
+const statuses = ["All", "New", "Done", "Retired"];
 
-const statuses = ["All", "Planned", "Under Review", "Released"];
-
-export default function Ideas({ product }) {
+export default function Ideas() {
+  const { guid } = useParams();
+  const [product, setProduct] = useState(null);
+  const [ideas, setIdeas] = useState([]);
   const [filter, setFilter] = useState("All");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const productRes = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/products/guid/${guid}`
+        );
+
+        if (!productRes.ok) {
+          console.error("Failed to fetch product:", productRes.status);
+          setLoading(false);
+          return;
+        }
+
+        const productData = await productRes.json();
+        setProduct(productData);
+
+        const ideasRes = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/ideas/${productData.id}`
+        );
+
+        if (!ideasRes.ok) {
+          console.error("Failed to fetch ideas:", ideasRes.status);
+          setIdeas([]);
+        } else {
+          const ideasData = await ideasRes.json();
+          setIdeas(ideasData);
+        }
+      } catch (err) {
+        console.error("Failed to load ideas page:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [guid]);
+
+  const handleSubmit = async ({ title, description }) => {
+    if (!product) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/ideas/${product.id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, description }),
+        }
+      );
+
+      if (!res.ok) throw new Error("Submission failed");
+
+      const newIdea = await res.json();
+      setIdeas((prev) => [newIdea, ...prev]);
+      setShowForm(false);
+    } catch (err) {
+      console.error("Error submitting idea:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const filtered =
-    filter === "All" ? fakeIdeas : fakeIdeas.filter((i) => i.status === filter);
+    filter === "All" ? ideas : ideas.filter((i) => i.status === filter);
+
+  if (loading) {
+    return <p className="text-center py-20">Loading ideas...</p>;
+  }
+
+  if (!product) {
+    return (
+      <div className="text-center py-20 text-red-500">
+        Product not found or unavailable.
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen py-10 px-4">
@@ -54,10 +101,25 @@ export default function Ideas({ product }) {
           <p className="text-gray-500 mb-6">
             Share your ideas, 👍 or 👎 ideas, and tell us what matters most.
           </p>
-          <button className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 shadow">
-            + Submit Your Idea
-          </button>
+          {!showForm && (
+            <button
+              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 shadow"
+              onClick={() => setShowForm(true)}
+            >
+              + Submit Your Idea
+            </button>
+          )}
         </section>
+
+        {showForm && (
+          <div className="mb-12">
+            <IdeaForm
+              onSubmit={handleSubmit}
+              onCancel={() => setShowForm(false)}
+              submitting={submitting}
+            />
+          </div>
+        )}
 
         <div className="sticky top-0 bg-white z-10 p-3 rounded-lg shadow-sm flex gap-2 mb-6">
           {statuses.map((s) => (
@@ -78,14 +140,17 @@ export default function Ideas({ product }) {
         <div className="space-y-4">
           {filtered.length > 0 ? (
             filtered.map((idea) => <IdeaCard key={idea.id} idea={idea} />)
-          ) : (
+          ) : ideas.length === 0 ? (
             <div className="text-center py-20 text-gray-400">
-              <p className="text-lg mb-4">No ideas in this category yet.</p>
-              <button className="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">
+              <p className="text-lg mb-4">No ideas have been submitted yet.</p>
+              <button
+                className="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700"
+                onClick={() => setShowForm(true)}
+              >
                 Be the first to submit!
               </button>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Eye, Copy, Check } from "lucide-react";
 import ConfirmModal from "@/components/Common/ConfirmModal";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -10,7 +10,7 @@ export default function Dashboard() {
   const [products, setProducts] = useState([]);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const [copiedId, setCopiedId] = useState(null);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -41,6 +41,14 @@ export default function Dashboard() {
     setProducts(data);
   };
 
+  const handleCopyLink = async (guid, id) => {
+    const url = `${window.location.origin}/products/${guid}/public`;
+    await navigator.clipboard.writeText(url);
+    setCopiedId(id);
+
+    setTimeout(() => setCopiedId(null), 1500); // reset after 1.5s
+  };
+
   const confirmDelete = (id) => {
     setSelectedProductId(id);
     setIsModalOpen(true);
@@ -64,7 +72,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto mt-10 px-4">
+    <div className="bg-gray-50 min-h-screen py-10 px-4">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-primary tracking-tight">
           ✨ Your Products
@@ -90,13 +98,13 @@ export default function Dashboard() {
               key={product.id}
               className="relative bg-white border border-gray-200 rounded-2xl p-6 shadow-soft hover:shadow-pop transition-shadow"
             >
-              <div className="space-y-2 pb-8">
+              <div className="space-y-2 pb-10">
                 <h2 className="text-xl font-semibold text-primary">
                   {product.name}
                 </h2>
                 <p className="text-gray-700">{product.description}</p>
                 <p className="text-sm text-gray-400">
-                  {product.feedbacks.length} feedback entries
+                  {product.ideas.length} ideas submitted
                 </p>
               </div>
 
@@ -116,6 +124,26 @@ export default function Dashboard() {
                   title="Delete"
                 >
                   <Trash2 size={18} />
+                </button>
+                <button
+                  onClick={() => navigate(`/products/${product.guid}/ideas`)}
+                  className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition"
+                  aria-label="View public feedback"
+                  title="View"
+                >
+                  <Eye size={18} />
+                </button>
+                <button
+                  onClick={() => handleCopyLink(product.guid, product.id)}
+                  className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition"
+                  aria-label="Copy public link"
+                  title="Copy Public URL"
+                >
+                  {copiedId === product.id ? (
+                    <Check size={18} />
+                  ) : (
+                    <Copy size={18} />
+                  )}
                 </button>
               </div>
             </li>

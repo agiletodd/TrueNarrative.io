@@ -11,7 +11,7 @@ export async function getMyProducts(req, res) {
 
     const products = await prisma.product.findMany({
       where: { ownerId: userId },
-      include: { feedbacks: true },
+      include: { ideas: true }, // updated
     });
 
     res.json(products);
@@ -33,7 +33,7 @@ export async function getProductById(req, res) {
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      include: { feedbacks: true },
+      include: { ideas: true }, // updated
     });
 
     if (!product) {
@@ -43,6 +43,27 @@ export async function getProductById(req, res) {
     res.json(product);
   } catch (err) {
     console.error("Error fetching product by id:", err);
+    res.status(500).json({ error: "Failed to fetch product" });
+  }
+}
+
+// GET /api/products/guid/:guid
+export async function getProductByGuid(req, res) {
+  try {
+    const { guid } = req.params;
+
+    const product = await prisma.product.findUnique({
+      where: { guid },
+      include: { ideas: true }, // updated
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    res.json(product);
+  } catch (err) {
+    console.error("Error fetching product by guid:", err);
     res.status(500).json({ error: "Failed to fetch product" });
   }
 }
