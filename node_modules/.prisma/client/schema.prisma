@@ -28,6 +28,7 @@ model Product {
   id          Int        @id @default(autoincrement())
   name        String
   description String?
+  guid        String     @unique
   createdAt   DateTime   @default(now())
   ownerId     Int
   owner       User       @relation("ProductOwners", fields: [ownerId], references: [id])

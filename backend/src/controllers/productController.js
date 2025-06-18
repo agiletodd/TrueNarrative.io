@@ -1,5 +1,6 @@
 // src/controllers/productController.js
 import { PrismaClient } from "@prisma/client";
+import { randomUUID } from "crypto";
 const prisma = new PrismaClient();
 
 // GET /api/products/mine
@@ -63,6 +64,7 @@ export async function addProduct(req, res) {
       data: {
         name,
         description,
+        guid: randomUUID(),
         ownerId: userId,
       },
     });
