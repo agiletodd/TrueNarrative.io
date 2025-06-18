@@ -11,7 +11,7 @@ import RegisterForm from "@/components/Auth/RegisterForm";
 import ProductDashboard from "@/components/Products/Dashboard";
 import RequireAuth from "@/components/Auth/RequireAuth";
 import { AuthProvider } from "@/context/AuthContext";
-import ProductFormPage from "@/components/Products/ProductFormPage";
+import ProductForm from "@/components/Products/_ProductForm";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -35,7 +35,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 path="/products/new"
                 element={
                   <RequireAuth>
-                    <ProductFormPage />
+                    <ProductForm />
                   </RequireAuth>
                 }
               />
@@ -43,7 +43,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 path="/products/:id"
                 element={
                   <RequireAuth>
-                    <ProductFormPage />
+                    <ProductForm />
                   </RequireAuth>
                 }
               />

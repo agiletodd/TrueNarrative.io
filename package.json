@@ -2,7 +2,8 @@
   "name": "truenarrative-monorepo",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace backend\" \"npm run dev --workspace frontend\""
+    "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "install:all": "npm --prefix backend install && npm --prefix frontend install"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
