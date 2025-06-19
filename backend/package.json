@@ -2,7 +2,7 @@
   "name": "backend",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/index.js",
+    "dev": "nodemon server.js",
     "migrate": "prisma migrate dev --name init --schema=../prisma/schema.prisma --env-file=.env",
     "generate": "prisma generate --schema=../prisma/schema.prisma"
   },
