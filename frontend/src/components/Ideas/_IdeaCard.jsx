@@ -1,17 +1,30 @@
 import React from "react";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { MessageSquare } from "lucide-react";
+import VoteControls from "./_VoteControls";
 
-export default function IdeaCard({ idea, onClick }) {
+export default function IdeaCard({ idea, onClick, onVote }) {
   return (
-    <div
-      onClick={() => onClick?.(idea)}
-      className="bg-white p-5 rounded-2xl shadow hover:shadow-lg transition-shadow cursor-pointer border border-gray-100 group"
-    >
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex-1 space-y-2">
-          <h2 className="text-xl font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">
+    <div className="bg-white p-4 sm:p-6 rounded-2xl shadow hover:shadow-md transition-shadow border border-gray-100 flex gap-4 items-stretch">
+      {/* Vote Panel */}
+      <div className="flex flex-col items-center justify-center w-14 shrink-0 border-r pr-4">
+        <VoteControls
+          ideaId={idea.id}
+          upvotes={idea.upvotes}
+          downvotes={idea.downvotes}
+          onVote={onVote}
+        />
+      </div>
+
+      {/* Content Panel */}
+      <div
+        onClick={() => onClick?.(idea)}
+        className="flex-1 cursor-pointer flex flex-col justify-between"
+      >
+        <div className="space-y-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">
             {idea.title}
           </h2>
+
           <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
             {idea.description?.trim() || (
               <span className="text-gray-400 italic">
@@ -19,8 +32,11 @@ export default function IdeaCard({ idea, onClick }) {
               </span>
             )}
           </p>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs text-gray-500 mt-3">
           <span
-            className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium mt-1 ${
+            className={`inline-block px-2 py-0.5 rounded-full font-medium ${
               idea.status === "Done"
                 ? "bg-green-100 text-green-800"
                 : idea.status === "Retired"
@@ -30,31 +46,13 @@ export default function IdeaCard({ idea, onClick }) {
           >
             {idea.status}
           </span>
-        </div>
 
-        <div className="flex flex-col items-center justify-center gap-2 shrink-0">
-          <VoteButton
-            icon={<ThumbsUp className="w-4 h-4" />}
-            count={idea.upvotes}
-          />
-          <VoteButton
-            icon={<ThumbsDown className="w-4 h-4" />}
-            count={idea.downvotes}
-          />
+          <span className="flex items-center gap-1">
+            <MessageSquare size={14} />
+            {idea.commentCount}
+          </span>
         </div>
       </div>
     </div>
-  );
-}
-
-function VoteButton({ icon, count = 0 }) {
-  return (
-    <button
-      onClick={(e) => e.stopPropagation()}
-      className="flex items-center justify-center gap-1 text-gray-700 hover:text-indigo-600 transition-transform hover:scale-110"
-    >
-      {icon}
-      <span className="text-sm font-medium">{count}</span>
-    </button>
   );
 }

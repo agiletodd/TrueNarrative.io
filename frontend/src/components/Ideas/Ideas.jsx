@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import IdeaCard from "./_IdeaCard";
 import IdeaForm from "./_IdeaForm";
 
@@ -51,15 +52,54 @@ export default function Ideas() {
     fetchData();
   }, [guid]);
 
+  const handleVote = async (ideaId, type) => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/votes/${ideaId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ voteType: type }), // "up" or "down"
+        }
+      );
+
+      if (res.status === 409) {
+        const data = await res.json();
+        toast.error("You've already voted on this idea.");
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error("Vote failed");
+      }
+
+      const updatedIdea = await res.json();
+      setIdeas((prev) =>
+        prev.map((idea) => (idea.id === ideaId ? updatedIdea : idea))
+      );
+    } catch (err) {
+      console.error("Voting failed:", err);
+    }
+  };
+
   const handleSubmit = async ({ title, description }) => {
     if (!product) return;
     setSubmitting(true);
+
+    const token = localStorage.getItem("token");
+
     try {
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/api/ideas/${product.id}`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ title, description }),
         }
       );
@@ -139,7 +179,15 @@ export default function Ideas() {
 
         <div className="space-y-4">
           {filtered.length > 0 ? (
-            filtered.map((idea) => <IdeaCard key={idea.id} idea={idea} />)
+            filtered.map((idea, index) => {
+              return (
+                <IdeaCard
+                  key={idea?.id ?? `fallback-${index}`}
+                  idea={idea}
+                  onVote={handleVote}
+                />
+              );
+            })
           ) : ideas.length === 0 ? (
             <div className="text-center py-20 text-gray-400">
               <p className="text-lg mb-4">No ideas have been submitted yet.</p>

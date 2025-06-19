@@ -1,44 +1,55 @@
 import { PrismaClient } from "@prisma/client";
+import { getClientIp } from "../utils/getClientIp.js";
 const prisma = new PrismaClient();
 
 export async function submitVote(req, res) {
-  const { ideaId, type } = req.body;
+  const ideaId = parseInt(req.params.ideaId);
+  const typeRaw = req.body.voteType;
+  const voteType = (typeRaw || "").toUpperCase();
   const userId = req.user?.id;
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const ip = getClientIp(req);
 
-  if (!["UP", "DOWN"].includes(type) || !ideaId) {
+  if (!["UP", "DOWN"].includes(voteType) || !ideaId) {
     return res.status(400).json({ error: "Invalid vote payload" });
   }
 
   try {
     const data = {
       ideaId,
-      type,
+      type: voteType,
     };
     if (userId) data.userId = userId;
     else if (ip) data.ipAddress = ip;
 
-    await prisma.$transaction(async (tx) => {
-      // Check existing vote
-      const existing = userId
-        ? await tx.ideaVote.findUnique({
-            where: { ideaId_userId: { ideaId, userId } },
-          })
-        : await tx.ideaVote.findUnique({
-            where: { ideaId_ipAddress: { ideaId, ipAddress: ip } },
-          });
+    const uniqueWhere = userId
+      ? { ideaId_userId: { ideaId, userId } }
+      : { ideaId_ipAddress: { ideaId, ipAddress: ip } };
 
-      if (existing) {
-        res.status(409).json({ error: "Already voted" });
-        throw new Error("abort");
+    const existing = await prisma.ideaVote.findUnique({ where: uniqueWhere });
+
+    if (existing) {
+      if (existing.type === voteType) {
+        return res
+          .status(409)
+          .json({ error: "Already voted", reason: "duplicate_vote" });
+      } else {
+        await prisma.ideaVote.update({
+          where: uniqueWhere,
+          data: { type: voteType },
+        });
       }
+    } else {
+      await prisma.ideaVote.create({ data });
+    }
 
-      await tx.ideaVote.create({ data });
-    });
+    const [upvotes, downvotes, updatedIdea] = await Promise.all([
+      prisma.ideaVote.count({ where: { ideaId, type: "UP" } }),
+      prisma.ideaVote.count({ where: { ideaId, type: "DOWN" } }),
+      prisma.idea.findUnique({ where: { id: ideaId } }),
+    ]);
 
-    res.json({ success: true });
+    res.json({ ...updatedIdea, upvotes, downvotes });
   } catch (err) {
-    if (err.message === "abort") return;
     console.error("Vote error:", err);
     res.status(500).json({ error: "Vote submission failed" });
   }

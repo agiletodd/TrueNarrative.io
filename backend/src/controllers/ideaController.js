@@ -11,9 +11,33 @@ export async function getIdeasForProduct(req, res) {
     const ideas = await prisma.idea.findMany({
       where: { productId },
       orderBy: { createdAt: "desc" },
+      include: {
+        votes: {
+          select: { type: true },
+        },
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
+      },
     });
 
-    res.json(ideas);
+    const enrichedIdeas = ideas.map((idea) => {
+      const upvotes = idea.votes.filter((v) => v.type === "UP").length;
+      const downvotes = idea.votes.filter((v) => v.type === "DOWN").length;
+
+      return {
+        ...idea,
+        upvotes,
+        downvotes,
+        commentCount: idea._count.comments,
+        votes: undefined,
+        _count: undefined,
+      };
+    });
+
+    res.json(enrichedIdeas);
   } catch (error) {
     console.error("Error fetching ideas:", error);
     res.status(500).json({ error: "Failed to fetch ideas" });

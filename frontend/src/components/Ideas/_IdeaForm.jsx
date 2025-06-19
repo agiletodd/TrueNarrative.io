@@ -1,7 +1,6 @@
-// _FeedbackForm.jsx
 import React, { useState } from "react";
 
-export default function FeedbackForm({ onSubmit, onCancel, submitting }) {
+export default function IdeaForm({ onSubmit, onCancel, submitting }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
