@@ -12,12 +12,12 @@ import { requireAuth } from "../middleware/requireAuth.js";
 
 const router = express.Router();
 
-router.get("/mine", requireAuth, getMyProducts);
-router.get("/:id", requireAuth, getProductById);
-router.get("/guid/:guid", getProductByGuid);
+router.get("/products/mine", requireAuth, getMyProducts);
+router.get("/products/:id", requireAuth, getProductById);
+router.get("/products/guid/:guid", getProductByGuid);
 
-router.post("/", requireAuth, addProduct);
-router.put("/:id", requireAuth, editProduct);
-router.delete("/:id", requireAuth, deleteProduct);
+router.post("/products/", requireAuth, addProduct);
+router.put("/products/:id", requireAuth, editProduct);
+router.delete("/products/:id", requireAuth, deleteProduct);
 
 export default router;

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { toast } from "react-hot-toast";
 import IdeaCard from "./_IdeaCard";
 import IdeaForm from "./_IdeaForm";
+import { useVote } from "@/hooks/useVote";
 
 const statuses = ["All", "New", "Done", "Retired"];
 
@@ -14,6 +14,9 @@ export default function Ideas() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [selectedIdea, setSelectedIdea] = useState(null);
+
+  const vote = useVote();
 
   useEffect(() => {
     async function fetchData() {
@@ -21,27 +24,16 @@ export default function Ideas() {
         const productRes = await fetch(
           `${import.meta.env.VITE_API_URL}/api/products/guid/${guid}`
         );
-
-        if (!productRes.ok) {
-          console.error("Failed to fetch product:", productRes.status);
-          setLoading(false);
-          return;
-        }
-
+        if (!productRes.ok) throw new Error("Product fetch failed");
         const productData = await productRes.json();
         setProduct(productData);
 
         const ideasRes = await fetch(
           `${import.meta.env.VITE_API_URL}/api/ideas/${productData.id}`
         );
-
-        if (!ideasRes.ok) {
-          console.error("Failed to fetch ideas:", ideasRes.status);
-          setIdeas([]);
-        } else {
-          const ideasData = await ideasRes.json();
-          setIdeas(ideasData);
-        }
+        if (!ideasRes.ok) throw new Error("Ideas fetch failed");
+        const ideasData = await ideasRes.json();
+        setIdeas(ideasData);
       } catch (err) {
         console.error("Failed to load ideas page:", err);
       } finally {
@@ -53,43 +45,16 @@ export default function Ideas() {
   }, [guid]);
 
   const handleVote = async (ideaId, type) => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/votes/${ideaId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({ voteType: type }), // "up" or "down"
-        }
-      );
-
-      if (res.status === 409) {
-        const data = await res.json();
-        toast.error("You've already voted on this idea.");
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error("Vote failed");
-      }
-
-      const updatedIdea = await res.json();
-      setIdeas((prev) =>
-        prev.map((idea) => (idea.id === ideaId ? updatedIdea : idea))
-      );
-    } catch (err) {
-      console.error("Voting failed:", err);
-    }
+    const updatedIdea = await vote(ideaId, type);
+    if (!updatedIdea) return;
+    setIdeas((prev) =>
+      prev.map((idea) => (idea.id === ideaId ? updatedIdea : idea))
+    );
   };
 
   const handleSubmit = async ({ title, description }) => {
     if (!product) return;
     setSubmitting(true);
-
-    const token = localStorage.getItem("token");
 
     try {
       const res = await fetch(
@@ -98,7 +63,7 @@ export default function Ideas() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           body: JSON.stringify({ title, description }),
         }
@@ -179,15 +144,15 @@ export default function Ideas() {
 
         <div className="space-y-4">
           {filtered.length > 0 ? (
-            filtered.map((idea, index) => {
-              return (
-                <IdeaCard
-                  key={idea?.id ?? `fallback-${index}`}
-                  idea={idea}
-                  onVote={handleVote}
-                />
-              );
-            })
+            filtered.map((idea, index) => (
+              <IdeaCard
+                key={idea?.id ?? `fallback-${index}`}
+                idea={idea}
+                onVote={handleVote}
+                guid={guid}
+                onClick={() => setSelectedIdea(idea)}
+              />
+            ))
           ) : ideas.length === 0 ? (
             <div className="text-center py-20 text-gray-400">
               <p className="text-lg mb-4">No ideas have been submitted yet.</p>

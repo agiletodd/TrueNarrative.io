@@ -14,6 +14,7 @@ import RequireAuth from "@/components/Auth/RequireAuth";
 import { AuthProvider } from "@/context/AuthContext";
 import ProductForm from "@/components/Products/_ProductForm";
 import Ideas from "@/components/Ideas/Ideas";
+import IdeaDetail from "@/components/Ideas/_IdeaDetail";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -61,6 +62,10 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               />
 
               <Route path="/products/:guid/ideas" element={<Ideas />} />
+              <Route
+                path="/products/:guid/ideas/:ideaId"
+                element={<IdeaDetail />}
+              />
             </Route>
           </Route>
         </Routes>

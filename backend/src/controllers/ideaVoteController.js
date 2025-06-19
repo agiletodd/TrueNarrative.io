@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { getClientIp } from "../utils/getClientIp.js";
 const prisma = new PrismaClient();
 
 export async function submitVote(req, res) {
@@ -7,10 +6,14 @@ export async function submitVote(req, res) {
   const typeRaw = req.body.voteType;
   const voteType = (typeRaw || "").toUpperCase();
   const userId = req.user?.id;
-  const ip = getClientIp(req);
+  const guestId = req.body.guestId;
 
   if (!["UP", "DOWN"].includes(voteType) || !ideaId) {
     return res.status(400).json({ error: "Invalid vote payload" });
+  }
+
+  if (!userId && !guestId) {
+    return res.status(400).json({ error: "Missing guest ID" });
   }
 
   try {
@@ -18,12 +21,13 @@ export async function submitVote(req, res) {
       ideaId,
       type: voteType,
     };
+
     if (userId) data.userId = userId;
-    else if (ip) data.ipAddress = ip;
+    else data.guestId = guestId;
 
     const uniqueWhere = userId
       ? { ideaId_userId: { ideaId, userId } }
-      : { ideaId_ipAddress: { ideaId, ipAddress: ip } };
+      : { ideaId_guestId: { ideaId, guestId } };
 
     const existing = await prisma.ideaVote.findUnique({ where: uniqueWhere });
 
@@ -58,7 +62,7 @@ export async function submitVote(req, res) {
 export async function getVoteStatus(req, res) {
   const { ideaId } = req.params;
   const userId = req.user?.id;
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const guestId = req.query.guestId;
 
   try {
     const [vote, upCount, downCount] = await Promise.all([
@@ -68,11 +72,13 @@ export async function getVoteStatus(req, res) {
               ideaId_userId: { ideaId: Number(ideaId), userId },
             },
           })
-        : prisma.ideaVote.findUnique({
+        : guestId
+        ? prisma.ideaVote.findUnique({
             where: {
-              ideaId_ipAddress: { ideaId: Number(ideaId), ipAddress: ip },
+              ideaId_guestId: { ideaId: Number(ideaId), guestId },
             },
-          }),
+          })
+        : null,
       prisma.ideaVote.count({
         where: { ideaId: Number(ideaId), type: "UP" },
       }),

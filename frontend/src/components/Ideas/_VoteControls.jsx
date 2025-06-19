@@ -12,7 +12,7 @@ export default function VoteControls({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center gap-2 shrink-0">
+    <div className="flex items-center justify-start gap-4 shrink-0">
       <VoteButton
         icon={<ThumbsUp className="w-4 h-4" />}
         count={upvotes}

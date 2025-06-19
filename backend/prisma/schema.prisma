@@ -63,13 +63,13 @@ model IdeaVote {
 
   userId     Int?
   user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ipAddress  String?
+  guestId    String? 
 
   type       VoteType
   createdAt  DateTime   @default(now())
 
   @@unique([ideaId, userId])
-  @@unique([ideaId, ipAddress])
+  @@unique([ideaId, guestId])
 }
 
 model IdeaComment {
@@ -80,7 +80,7 @@ model IdeaComment {
   userId     Int?
   user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  ipAddress  String?
+  guestId    String? 
   guestName  String?
   content    String
 

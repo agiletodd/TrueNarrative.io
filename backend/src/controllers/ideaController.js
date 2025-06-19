@@ -68,3 +68,47 @@ export async function submitIdea(req, res) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
+
+export async function getIdeaById(req, res) {
+  const ideaId = parseInt(req.params.ideaId);
+  if (isNaN(ideaId)) {
+    return res.status(400).json({ error: "Invalid idea ID" });
+  }
+
+  try {
+    const idea = await prisma.idea.findUnique({
+      where: { id: ideaId },
+      include: {
+        votes: true,
+        comments: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstname: true,
+                lastname: true,
+              },
+            },
+          },
+        },
+        _count: { select: { comments: true } },
+      },
+    });
+
+    if (!idea) return res.status(404).json({ error: "Idea not found" });
+
+    const upvotes = idea.votes.filter((v) => v.type === "UP").length;
+    const downvotes = idea.votes.filter((v) => v.type === "DOWN").length;
+
+    res.json({
+      ...idea,
+      upvotes,
+      downvotes,
+      votes: undefined,
+    });
+  } catch (err) {
+    console.error("Error fetching idea:", err);
+    res.status(500).json({ error: "Failed to fetch idea" });
+  }
+}

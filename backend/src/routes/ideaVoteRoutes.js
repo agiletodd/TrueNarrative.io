@@ -7,7 +7,7 @@ import { requireAuthOptional } from "../middleware/requireAuth.js";
 
 const router = express.Router();
 
-router.post("/:ideaId", requireAuthOptional, submitVote);
-router.get("/:ideaId", requireAuthOptional, getVoteStatus);
+router.post("/votes/:ideaId", requireAuthOptional, submitVote);
+router.get("/votes/:ideaId", requireAuthOptional, getVoteStatus);
 
 export default router;

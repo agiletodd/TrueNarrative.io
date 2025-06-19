@@ -1,25 +1,21 @@
-import React from "react";
+import { useNavigate } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
 import VoteControls from "./_VoteControls";
 
-export default function IdeaCard({ idea, onClick, onVote }) {
-  return (
-    <div className="bg-white p-4 sm:p-6 rounded-2xl shadow hover:shadow-md transition-shadow border border-gray-100 flex gap-4 items-stretch">
-      {/* Vote Panel */}
-      <div className="flex flex-col items-center justify-center w-14 shrink-0 border-r pr-4">
-        <VoteControls
-          ideaId={idea.id}
-          upvotes={idea.upvotes}
-          downvotes={idea.downvotes}
-          onVote={onVote}
-        />
-      </div>
+export default function IdeaCard({ idea, guid, onVote }) {
+  const navigate = useNavigate();
 
+  const handleCardClick = () => {
+    navigate(`/products/${guid}/ideas/${idea.id}`);
+  };
+
+  return (
+    <div
+      className="bg-white p-4 sm:p-6 rounded-2xl shadow hover:shadow-md transition-shadow border border-gray-100 flex gap-4 items-stretch"
+      onClick={handleCardClick}
+    >
       {/* Content Panel */}
-      <div
-        onClick={() => onClick?.(idea)}
-        className="flex-1 cursor-pointer flex flex-col justify-between"
-      >
+      <div className="flex-1 flex flex-col justify-between cursor-pointer">
         <div className="space-y-2">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">
             {idea.title}
@@ -52,6 +48,19 @@ export default function IdeaCard({ idea, onClick, onVote }) {
             {idea.commentCount}
           </span>
         </div>
+      </div>
+
+      {/* Vote Panel (non-click-propagating) */}
+      <div
+        className="flex flex-col items-center justify-center shrink-0 pl-4 border-l"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <VoteControls
+          ideaId={idea.id}
+          upvotes={idea.upvotes}
+          downvotes={idea.downvotes}
+          onVote={onVote}
+        />
       </div>
     </div>
   );
