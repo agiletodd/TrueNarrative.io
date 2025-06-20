@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 
 export default function RegisterForm() {
   const { register, isAuthenticated, user, error } = useAuth();
+  const [localError, setLocalError] = useState(null);
+
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -11,6 +13,7 @@ export default function RegisterForm() {
     lastname: "",
     avatarUrl: "",
     bio: "",
+    website: "", // Honeypot field
   });
 
   const navigate = useNavigate();
@@ -24,30 +27,49 @@ export default function RegisterForm() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    setLocalError(null); // Clear local error on input change
   };
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (form.website) {
+      return; // Honeypot trap
+    }
     try {
       await register(form);
-      // navigation handled by useEffect after isAuthenticated updates
     } catch (err) {
       console.error("Registration failed:", err.message);
+      setLocalError(err.message || "Registration failed.");
     }
   }
 
   return (
     <div className="max-w-md mx-auto mt-16 bg-white shadow-md rounded p-6">
       <h2 className="text-2xl font-bold mb-4 text-center">Create Account</h2>
+
       {isAuthenticated && (
         <p className="text-green-600 text-sm mb-4 text-center">
           Registered as {user?.email}
         </p>
       )}
-      {error && (
-        <p className="text-red-600 text-sm mb-4 text-center">{error}</p>
+
+      {(error || localError) && (
+        <p className="text-red-600 text-sm mb-4 text-center">
+          {error || localError}
+        </p>
       )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="text"
+          name="website"
+          value={form.website}
+          onChange={handleChange}
+          autoComplete="off"
+          tabIndex="-1"
+          style={{ display: "none" }}
+        />
+
         <input
           name="firstname"
           placeholder="First Name"
