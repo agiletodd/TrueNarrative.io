@@ -2,11 +2,12 @@
   "name": "backend",
   "type": "module",
   "scripts": {
-    "migrate": "prisma migrate dev --name init --schema=../prisma/schema.prisma --env-file=.env",
-    "generate": "prisma generate --schema=../prisma/schema.prisma",
+    "migrate": "npx prisma migrate dev --name init --schema=prisma/schema.prisma --env-file=.env",
+    "generate": "npx prisma generate --schema=prisma/schema.prisma",
     "swap:provider": "node scripts/swapPrismaProvider.js",
-    "dev": "npm run swap:provider && npx prisma migrate dev && node server.js",
-    "start": "cross-env NODE_ENV=production npm run swap:provider && npx prisma migrate deploy && node server.js"
+    "dev": "npm run dev:sqlite",
+    "dev:sqlite": "cross-env NODE_ENV=development npm run swap:provider && npx prisma db push --schema=prisma/schema.prisma && npm run generate && node server.js",
+    "start": "cross-env NODE_ENV=production npm run swap:provider && npx prisma migrate deploy --schema=prisma/schema.prisma && npm run generate && node server.js"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",

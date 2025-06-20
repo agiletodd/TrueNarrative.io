@@ -14,9 +14,14 @@
 ## 🚀 Getting Started
 
 npm install
-npx prisma generate --schema=backend/prisma/schema.prisma
-npm run migrate
+
+# Local Development (no setup needed)
+
 npm run dev
+
+# Production (Railway)
+
+npm run start
 
 - Frontend: [http://localhost:5173](http://localhost:5173)
 - Backend API: [http://localhost:4000/api/feedback](http://localhost:4000/api/feedback)
