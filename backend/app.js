@@ -9,11 +9,21 @@ import ideaVoteRoutes from "./src/routes/ideaVoteRoutes.js";
 import ideaCommentRoutes from "./src/routes/ideaCommentRoutes.js";
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:5173", // local dev
+  "https://frontend-truenarrativeio-production.up.railway.app", // production frontend
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
-    exposedHeaders: ["Authorization"],
   })
 );
 app.use(express.json());
