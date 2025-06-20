@@ -2,21 +2,23 @@
   "name": "backend",
   "type": "module",
   "scripts": {
-    "dev": "nodemon server.js",
-    "start": "npx prisma migrate deploy && node server.js",
     "migrate": "prisma migrate dev --name init --schema=../prisma/schema.prisma --env-file=.env",
-    "generate": "prisma generate --schema=../prisma/schema.prisma"
+    "generate": "prisma generate --schema=../prisma/schema.prisma",
+    "swap:provider": "cross-env NODE_ENV=development node scripts/swapPrismaProvider.js",
+    "dev": "npm run swap:provider && npx prisma migrate dev && node server.js",
+    "start": "cross-env NODE_ENV=production npm run swap:provider && npx prisma migrate deploy && node server.js"
   },
   "dependencies": {
+    "@prisma/client": "^6.9.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "express-validator": "^7.2.1",
-    "jsonwebtoken": "^9.0.2",
-    "@prisma/client": "^6.9.0"
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "nodemon": "^3.1.10"
   }
 }
