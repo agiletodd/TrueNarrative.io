@@ -2,7 +2,10 @@
   "name": "frontend",
   "type": "module",
   "scripts": {
-    "dev": "vite"
+    "build": "npm install --legacy-peer-deps && vite build",
+    "dev": "vite",
+    "preview": "vite preview",
+    "start": "npx serve -s dist"
   },
   "dependencies": {
     "lucide-react": "^0.515.0",
