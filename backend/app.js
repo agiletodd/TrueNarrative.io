@@ -10,8 +10,9 @@ import ideaCommentRoutes from "./src/routes/ideaCommentRoutes.js";
 const app = express();
 
 const allowedOrigins = [
-  "http://localhost:5173", // local dev
-  "https://frontend-truenarrativeio-production.up.railway.app", // production frontend
+  "http://localhost:5173",
+  "https://frontend-truenarrativeio-production.up.railway.app",
+  "frontend.railway.internal",
 ];
 
 app.use(
