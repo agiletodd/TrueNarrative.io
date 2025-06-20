@@ -4,7 +4,7 @@
   "scripts": {
     "migrate": "prisma migrate dev --name init --schema=../prisma/schema.prisma --env-file=.env",
     "generate": "prisma generate --schema=../prisma/schema.prisma",
-    "swap:provider": "cross-env NODE_ENV=development node scripts/swapPrismaProvider.js",
+    "swap:provider": "node scripts/swapPrismaProvider.js",
     "dev": "npm run swap:provider && npx prisma migrate dev && node server.js",
     "start": "cross-env NODE_ENV=production npm run swap:provider && npx prisma migrate deploy && node server.js"
   },
