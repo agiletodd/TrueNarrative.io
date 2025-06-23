@@ -1,38 +1,58 @@
 import React from "react";
-import { Lightbulb, MessageSquare, ThumbsUp, Send } from "lucide-react";
+import {
+  Lightbulb,
+  MessageSquare,
+  ThumbsUp,
+  Send,
+  Users,
+  Brain,
+  Rocket,
+} from "lucide-react";
 
 export default function Home() {
   return (
     <main className="max-w-3xl mx-auto px-6 py-16 text-center space-y-10">
       <h1 className="text-4xl font-bold text-gray-800 tracking-tight">
-        Welcome to <span className="text-indigo-600">TrueNarrative</span>
+        Learn AI. Build Products. <br /> Create a{" "}
+        <span className="text-indigo-600">True Narrative</span>
       </h1>
       <p className="text-lg text-gray-600 max-w-xl mx-auto">
-        TrueNarrative helps teams gather, vote on, and discuss ideas that matter
-        most. Whether you're shipping a new product or refining your roadmap, we
-        make feedback visible and actionable.
+        TrueNarrative is a one-of-a-kind platform where students, developers,
+        and product managers collaborate to build AI-powered products in real
+        time. Learn by doing, launch something real, and help shape what comes
+        next.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-left">
         <Feature
+          icon={<Rocket className="w-6 h-6 text-indigo-600" />}
+          title="Building Software with AI Course"
+          text="Developers dive into building features using AI frameworks directly in our live product environment."
+        />
+        <Feature
+          icon={<Brain className="w-6 h-6 text-indigo-600" />}
+          title="Product Management with AI Course"
+          text="Product managers learn to define, evaluate, and prioritize AI-driven ideas that solve real problems."
+        />
+        <Feature
+          icon={<Users className="w-6 h-6 text-indigo-600" />}
+          title="Live Product Community"
+          text="Your work doesn't stay in the classroom — it ships. Real users test and validate what you build."
+        />
+        <Feature
           icon={<Lightbulb className="w-6 h-6 text-indigo-600" />}
-          title="Share Ideas"
-          text="Users can easily suggest new features, improvements, or pain points."
+          title="Idea Sharing"
+          text="Contributors and users suggest and explore what's worth building next."
         />
         <Feature
           icon={<ThumbsUp className="w-6 h-6 text-indigo-600" />}
-          title="Vote on What Matters"
-          text="Quick up/down voting helps highlight what resonates across your team or user base."
-        />
-        <Feature
-          icon={<MessageSquare className="w-6 h-6 text-indigo-600" />}
-          title="Start Conversations"
-          text="Comment threads keep feedback collaborative and context-rich."
+          title="Crowd Voting"
+          text="Vote on the best ideas to shape the roadmap together."
         />
         <Feature
           icon={<Send className="w-6 h-6 text-indigo-600" />}
-          title="Drive Action"
-          text="Track progress and close the loop with those who care most."
+          title="Launch with Confidence"
+          text="Track progress and ship features with real visibility."
         />
       </div>
 
@@ -41,7 +61,7 @@ export default function Home() {
           href="/register"
           className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition"
         >
-          Get Started for Free
+          Join the Next Cohort
         </a>
       </div>
     </main>
