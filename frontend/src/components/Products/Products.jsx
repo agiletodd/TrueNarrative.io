@@ -110,7 +110,7 @@ export default function Dashboard() {
 
               <div className="absolute bottom-4 right-4 flex gap-2">
                 <button
-                  onClick={() => navigate(`/products/${product.id}/ideas`)}
+                  onClick={() => navigate(`/products/${product.id}`)}
                   className="p-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition"
                   aria-label="Edit product"
                   title="Edit"
