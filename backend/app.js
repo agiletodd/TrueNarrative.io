@@ -13,6 +13,9 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://frontend-truenarrativeio-production.up.railway.app",
   "frontend.railway.internal",
+  "frontend.railway.internal",
+  "https://www.truenarrative.io",
+  "https://truenarrative.io",
 ];
 
 app.use(
