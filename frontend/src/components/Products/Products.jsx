@@ -42,7 +42,7 @@ export default function Dashboard() {
   };
 
   const handleCopyLink = async (guid, id) => {
-    const url = `${window.location.origin}/products/${guid}/public`;
+    const url = `${window.location.origin}/products/${guid}/ideas`;
     await navigator.clipboard.writeText(url);
     setCopiedId(id);
 
@@ -110,7 +110,7 @@ export default function Dashboard() {
 
               <div className="absolute bottom-4 right-4 flex gap-2">
                 <button
-                  onClick={() => navigate(`/products/${product.id}`)}
+                  onClick={() => navigate(`/products/${product.id}/ideas`)}
                   className="p-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition"
                   aria-label="Edit product"
                   title="Edit"
