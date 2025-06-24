@@ -1,8 +1,14 @@
 # 🎓 Welcome to TrueNarrative.io
 
-This is a full-stack web app built with modern tools. We’ve made it super easy for you to run it locally with just a few steps — no advanced setup needed.
+Welcome to the TrueNarrative.io project — a modern full-stack web app built to help you learn by building. You'll be contributing real features using the same tools used in today’s production environments.
 
----
+> ⚠️ **Important:** This README is the official pre-class setup guide. Follow each step carefully **before the first session** to make sure everything runs smoothly.
+
+## 🌟 Why TrueNarrative?
+
+TrueNarrative is more than just an app — it’s a platform for capturing ideas, shaping feedback, and empowering people to be heard. Our mission is to give users a simple, delightful way to share what matters and help great products improve through honest, thoughtful input.
+
+As a student, you're not just learning to code — you're helping shape a tool that makes feedback feel human again.
 
 ## 🛠 What's Inside
 
@@ -26,20 +32,18 @@ You **do not** need to install a database — SQLite works out of the box.
 
 ## 🚀 Get Started in 5 Steps
 
-### 1. Download the Code
+### 1. Fork the Repo
 
-Open your terminal and run:
+Go to https://github.com/agiletodd/TrueNarrative.io and click the Fork button in the top-right to create your own copy of the project.
+
+Then clone your fork by running:
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/TrueNarrative.io.git
 cd TrueNarrative.io
 ```
 
-Or just download the ZIP and open the folder in your editor.
-
-From here [https://github.com/agiletodd/TrueNarrative.io](https://github.com/agiletodd/TrueNarrative.io) click on the 'Code' button and select 'Download ZIP' from the drop down.
-
----
+📝 Do not clone the original repo directly. You'll be working from your own fork.
 
 ### 2. Install All Dependencies
 
@@ -120,6 +124,18 @@ That’s it! Now open:
 
 ---
 
-## 🛠 Need Help?
+## ✅ Pre-Class Checklist
+
+Before class starts, make sure you've:
+
+- [ ] Forked the repo to your GitHub account
+- [ ] Cloned your fork locally
+- [ ] Installed Node.js and dependencies with npm install
+- [ ] Created both .env files
+- [ ] Set up the database with npm run db:setup
+- [ ] Verified the app runs using npm run dev
+- [ ] Visited http://localhost:5173 in your browser
+
+🛠 Need Help?
 
 If you get stuck, ask a teammate or instructor. We're here to help!
