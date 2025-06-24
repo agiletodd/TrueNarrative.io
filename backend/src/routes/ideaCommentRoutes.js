@@ -9,7 +9,9 @@ import { requireAuthOptional } from "../middleware/requireAuth.js";
 
 const router = express.Router();
 
-router.get("/comments/ideas/:ideaId/comments", getCommentsForIdea);
+// Fetch comments for a specific idea
+// corrected path from "/comments/ideas/:ideaId/comments" which was invalid
+router.get("/ideas/:ideaId/comments", getCommentsForIdea);
 router.post("/comments/", requireAuthOptional, createComment);
 router.delete("/comments/:commentId", requireAuthOptional, deleteComment);
 router.put("/comments/:commentId", requireAuthOptional, updateComment);
