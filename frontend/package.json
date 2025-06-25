@@ -13,6 +13,7 @@
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.5.2",
     "react-router-dom": "^7.6.2",
+    "truenarrative-monorepo": "file:..",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
