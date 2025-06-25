@@ -78,23 +78,7 @@ VITE_API_URL=http://localhost:4000
 
 ---
 
-### 4. Set Up the Database
-
-From the root folder, run:
-
-```bash
-npm run db:setup
-```
-
-This will:
-
-- Create the local SQLite database
-- Set up all the necessary tables
-- Get the backend ready
-
----
-
-### 5. Start the App
+### 4. Start the App
 
 Run this from the root folder:
 
