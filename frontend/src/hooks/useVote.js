@@ -1,40 +1,27 @@
+import { useApi } from "@/hooks/useApi";
 import { toast } from "react-hot-toast";
 
 export function useVote() {
-  const token = localStorage.getItem("token");
-  const guestId = localStorage.getItem("guestId"); // if using guest ID
+  const api = useApi();
+  const guestId = localStorage.getItem("guestId");
 
   return async function vote(ideaId, type) {
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/votes/${ideaId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-          body: JSON.stringify({
-            voteType: type,
-            ...(guestId && !token ? { guestId } : {}),
-          }),
-        }
-      );
+      const payload = {
+        voteType: type,
+        ...(guestId && !localStorage.getItem("token") ? { guestId } : {}),
+      };
 
-      if (res.status === 409) {
-        toast.error("You already voted.");
-        return null;
-      }
-
-      if (!res.ok) {
-        toast.error("Vote failed.");
-        return null;
-      }
-
-      return await res.json();
+      const res = await api.post(`/api/votes/${ideaId}`, payload);
+      return res.data;
     } catch (err) {
+      if (err.response?.status === 409) {
+        toast.error("You already voted.");
+      } else {
+        toast.error("Vote failed.");
+      }
+
       console.error("Vote error:", err);
-      toast.error("Vote failed due to network error.");
       return null;
     }
   };

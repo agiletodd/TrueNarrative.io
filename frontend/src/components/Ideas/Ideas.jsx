@@ -3,11 +3,13 @@ import { useParams } from "react-router-dom";
 import IdeaCard from "./_IdeaCard";
 import IdeaForm from "./_IdeaForm";
 import { useVote } from "@/hooks/useVote";
+import { useApi } from "@/hooks/useApi";
 
 const statuses = ["All", "New", "Done", "Retired"];
 
 export default function Ideas() {
   const { guid } = useParams();
+  const api = useApi();
   const [product, setProduct] = useState(null);
   const [ideas, setIdeas] = useState([]);
   const [filter, setFilter] = useState("All");
@@ -21,19 +23,11 @@ export default function Ideas() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const productRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/products/guid/${guid}`
-        );
-        if (!productRes.ok) throw new Error("Product fetch failed");
-        const productData = await productRes.json();
-        setProduct(productData);
+        const productRes = await api.get(`/api/products/guid/${guid}`);
+        setProduct(productRes.data);
 
-        const ideasRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/ideas/${productData.id}`
-        );
-        if (!ideasRes.ok) throw new Error("Ideas fetch failed");
-        const ideasData = await ideasRes.json();
-        setIdeas(ideasData);
+        const ideasRes = await api.get(`/api/ideas/${productRes.data.id}`);
+        setIdeas(ideasRes.data);
       } catch (err) {
         console.error("Failed to load ideas page:", err);
       } finally {
@@ -57,22 +51,11 @@ export default function Ideas() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/ideas/${product.id}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({ title, description }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Submission failed");
-
-      const newIdea = await res.json();
-      setIdeas((prev) => [newIdea, ...prev]);
+      const res = await api.post(`/api/ideas/${product.id}`, {
+        title,
+        description,
+      });
+      setIdeas((prev) => [res.data, ...prev]);
       setShowForm(false);
     } catch (err) {
       console.error("Error submitting idea:", err);

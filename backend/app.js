@@ -7,6 +7,7 @@ import ideaRoutes from "./src/routes/ideaRoutes.js";
 import productRoutes from "./src/routes/productRoutes.js";
 import ideaVoteRoutes from "./src/routes/ideaVoteRoutes.js";
 import ideaCommentRoutes from "./src/routes/ideaCommentRoutes.js";
+import adminRouter from "./src/routes/adminRoutes.js";
 const app = express();
 
 const allowedOrigins = [
@@ -42,6 +43,7 @@ app.use("/api", ideaRoutes);
 app.use("/api", productRoutes);
 app.use("/api", ideaVoteRoutes);
 app.use("/api", ideaCommentRoutes);
+app.use("/api", adminRouter);
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

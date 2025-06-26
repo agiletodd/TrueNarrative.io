@@ -3,10 +3,10 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Pencil, Trash2, Plus, Eye, Copy, Check } from "lucide-react";
 import ConfirmModal from "@/components/Common/ConfirmModal";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { useApi } from "@/hooks/useApi";
 
 export default function Dashboard() {
+  const api = useApi();
   const [products, setProducts] = useState([]);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,32 +21,23 @@ export default function Dashboard() {
     }
 
     fetchProducts();
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated]);
 
   const fetchProducts = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    const res = await fetch(`${API_URL}/api/products/mine`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) {
-      console.error("API error:", res.status, await res.text());
+    try {
+      const res = await api.get("/api/products/mine");
+      setProducts(res.data);
+    } catch (err) {
+      console.error("API error:", err.response?.status, err.message);
       setProducts([]);
-      return;
     }
-
-    const data = await res.json();
-    setProducts(data);
   };
 
   const handleCopyLink = async (guid, id) => {
     const url = `${window.location.origin}/products/${guid}/ideas`;
     await navigator.clipboard.writeText(url);
     setCopiedId(id);
-
-    setTimeout(() => setCopiedId(null), 1500); // reset after 1.5s
+    setTimeout(() => setCopiedId(null), 1500);
   };
 
   const confirmDelete = (id) => {
@@ -55,20 +46,15 @@ export default function Dashboard() {
   };
 
   const handleConfirmDelete = async () => {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${API_URL}/api/products/${selectedProductId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (res.ok) {
+    try {
+      await api.delete(`/api/products/${selectedProductId}`);
       setProducts((prev) => prev.filter((p) => p.id !== selectedProductId));
-    } else {
-      console.error("Failed to delete product");
+    } catch (err) {
+      console.error("Failed to delete product:", err);
+    } finally {
+      setIsModalOpen(false);
+      setSelectedProductId(null);
     }
-
-    setIsModalOpen(false);
-    setSelectedProductId(null);
   };
 
   return (

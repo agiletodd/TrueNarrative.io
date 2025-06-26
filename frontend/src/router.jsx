@@ -10,6 +10,8 @@ import ProductForm from "@/components/Products/_ProductForm";
 import Ideas from "@/components/Ideas/Ideas";
 import IdeaDetail from "@/components/Ideas/_IdeaDetail";
 import RequireAuth from "@/components/Auth/RequireAuth";
+import RequireAdmin from "@/components/Auth/RequireAdmin";
+import AdminDashboard from "@/components/Admin/AdminDashboard";
 
 const router = createBrowserRouter([
   {
@@ -52,6 +54,14 @@ const router = createBrowserRouter([
           {
             path: "/products/:guid/ideas/:ideaId",
             element: <IdeaDetail />,
+          },
+          {
+            path: "/admin",
+            element: (
+              <RequireAdmin>
+                <AdminDashboard />
+              </RequireAdmin>
+            ),
           },
         ],
       },

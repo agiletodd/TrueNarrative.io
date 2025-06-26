@@ -5,13 +5,17 @@ import { toast } from "react-hot-toast";
 import VoteControls from "./_VoteControls";
 import { useVote } from "@/hooks/useVote";
 import { useGuestId } from "@/hooks/useGuestId";
+import { useApi } from "@/hooks/useApi";
 
 export default function IdeaDetail() {
   const { guid, ideaId } = useParams();
+  const api = useApi();
+
   const [idea, setIdea] = useState(null);
   const [newComment, setNewComment] = useState("");
   const [guestName, setGuestName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
   const vote = useVote();
   const guestId = useGuestId();
 
@@ -20,12 +24,11 @@ export default function IdeaDetail() {
 
   useEffect(() => {
     async function fetchIdea() {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/idea/${ideaId}`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setIdea(data);
+      try {
+        const res = await api.get(`/api/idea/${ideaId}`);
+        setIdea(res.data);
+      } catch (err) {
+        console.error("Failed to fetch idea:", err);
       }
     }
 
@@ -39,7 +42,7 @@ export default function IdeaDetail() {
     setIdea((prev) => ({
       ...prev,
       ...updatedIdea,
-      comments: prev.comments,
+      comments: prev.comments, // keep existing comments
     }));
   };
 
@@ -51,29 +54,19 @@ export default function IdeaDetail() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/comments`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify({
-          ideaId: parseInt(ideaId),
-          content: newComment,
-          guestName: isGuest ? guestName.trim() : undefined,
-          guestId: isGuest ? guestId : undefined,
-        }),
+      const res = await api.post("/api/comments", {
+        ideaId: parseInt(ideaId),
+        content: newComment,
+        guestName: isGuest ? guestName.trim() : undefined,
+        guestId: isGuest ? guestId : undefined,
       });
 
-      if (res.ok) {
-        const comment = await res.json();
-        setIdea((prev) => ({
-          ...prev,
-          comments: [comment, ...(prev.comments || [])],
-        }));
-        setNewComment("");
-        setGuestName("");
-      }
+      setIdea((prev) => ({
+        ...prev,
+        comments: [res.data, ...(prev.comments || [])],
+      }));
+      setNewComment("");
+      setGuestName("");
     } catch (err) {
       console.error("Failed to post comment:", err);
     } finally {

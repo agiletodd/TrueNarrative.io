@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useApi } from "@/hooks/useApi";
 
 export default function ProductFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const api = useApi();
   const isEdit = !!id;
-  const API_URL = import.meta.env.VITE_API_URL;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -13,23 +14,21 @@ export default function ProductFormPage() {
   const [loading, setLoading] = useState(isEdit);
 
   useEffect(() => {
-    if (isEdit) {
-      const token = localStorage.getItem("token");
-      fetch(`${API_URL}/api/products/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setName(data.name || "");
-          setDescription(data.description || "");
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error("Failed to fetch product", err);
-          navigate("/dashboard");
-        });
+    async function loadProduct() {
+      try {
+        const res = await api.get(`/api/products/${id}`);
+        const data = res.data;
+        setName(data.name || "");
+        setDescription(data.description || "");
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to fetch product", err);
+        navigate("/dashboard");
+      }
     }
-  }, [id, isEdit, navigate, API_URL]);
+
+    if (isEdit) loadProduct();
+  }, [id, isEdit]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,28 +41,24 @@ export default function ProductFormPage() {
     }
 
     setError("");
-    const token = localStorage.getItem("token");
-    const url = isEdit
-      ? `${API_URL}/api/products/${id}`
-      : `${API_URL}/api/products`;
-    const method = isEdit ? "PUT" : "POST";
 
-    const res = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        name: trimmedName,
-        description: trimmedDescription,
-      }),
-    });
+    try {
+      if (isEdit) {
+        await api.put(`/api/products/${id}`, {
+          name: trimmedName,
+          description: trimmedDescription,
+        });
+      } else {
+        await api.post("/api/products", {
+          name: trimmedName,
+          description: trimmedDescription,
+        });
+      }
 
-    if (res.ok) {
       navigate("/dashboard");
-    } else {
-      console.error("Failed to save product");
+    } catch (err) {
+      console.error("Failed to save product:", err);
+      setError("Something went wrong saving the product.");
     }
   };
 
