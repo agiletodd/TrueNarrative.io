@@ -57,7 +57,7 @@ export default function LoginForm() {
         </button>
       </form>
 
-      <div className="mt-6 text-center">
+      {/* <div className="mt-6 text-center">
         <p className="text-sm text-gray-600">
           Don't have an account?{" "}
           <button
@@ -67,7 +67,7 @@ export default function LoginForm() {
             Create Account
           </button>
         </p>
-      </div>
+      </div> */}
     </div>
   );
 }
