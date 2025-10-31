@@ -53,16 +53,16 @@ export default function Navbar() {
                 )}
               </div>
             </>
-          ) : (
-            <Link
-              to="/login"
-              className="flex items-center gap-1 text-sm text-primary hover:text-primary-dark transition"
-              title="Login or Register"
-            >
-              <User className="w-5 h-5" />
-              <span className="hidden sm:inline">Login</span>
-            </Link>
-          )}
+          ) : // Temporarily hide the login button until auth flow is ready.
+          // <Link
+          //   to="/login"
+          //   className="flex items-center gap-1 text-sm text-primary hover:text-primary-dark transition"
+          //   title="Login or Register"
+          // >
+          //   <User className="w-5 h-5" />
+          //   <span className="hidden sm:inline">Login</span>
+          // </Link>
+          null}
         </div>
       </div>
     </header>
