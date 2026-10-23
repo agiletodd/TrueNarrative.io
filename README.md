@@ -77,7 +77,7 @@ cd TrueNarrative.io
 npm ci --ignore-scripts
 ```
 
-The root install covers both npm workspaces. Install scripts are skipped here to avoid Prisma's automatic CLI installation; the next commands explicitly supply Prisma **6.10.0**, matching the root lockfile's Prisma Client, without adding a dependency to the project.
+The root install covers both npm workspaces. Install scripts are skipped here to avoid Prisma's automatic CLI installation. Backend scripts explicitly run Prisma **6.10.0**, matching the pinned Prisma Client, through `npx`; a separate CLI installation is unnecessary.
 
 Copy [backend/.env.example](backend/.env.example) to `backend/.env` and [frontend/.env.example](frontend/.env.example) to `frontend/.env`. Replace the JWT placeholder with a locally generated value. The full [student setup guide](docs/student-setup.md) includes copy commands and secret generation.
 
@@ -96,8 +96,8 @@ VITE_API_URL=http://localhost:4000
 From the repository root:
 
 ```bash
-npm exec --yes --package=prisma@6.10.0 -- npm run db:setup
-npm exec --yes --package=prisma@6.10.0 -- node --env-file=backend/.env --run dev
+npm run db:setup
+node --env-file=backend/.env --run dev
 ```
 
 The first command creates `backend/prisma/dev.db` from the SQLite schema and generates Prisma Client. The second invokes the existing root `dev` script, which starts both services. It loads backend settings before any application modules run so JWT signing uses the configured secret. Startup also repeats the database push and client generation. Prisma CLI downloads require network access on first use.

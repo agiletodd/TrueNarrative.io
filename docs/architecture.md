@@ -114,7 +114,7 @@ The browser stores both token and user in local storage. Logout removes those va
 | `NODE_ENV` | Provider-switch script | Selects PostgreSQL only when exactly `production`; development scripts set it for the switch |
 | `VITE_API_URL` | Browser Axios client | Backend origin; Vite reads it into the frontend bundle |
 
-See [student-setup.md](student-setup.md) for commands that supply the temporary Prisma CLI and preload backend settings. They use Node 22+ and do not change package manifests. Loading the environment before module evaluation matters: static imports run before the body of `server.js`, and the JWT helper otherwise can capture its hardcoded fallback before `dotenv.config()` loads the file.
+See [student-setup.md](student-setup.md) for commands that preload backend settings. They use Node 22+. Backend scripts fetch the pinned Prisma CLI through `npx`. Loading the environment before module evaluation matters: static imports run before the body of `server.js`, and the JWT helper otherwise can capture its hardcoded fallback before `dotenv.config()` loads the file.
 
 The CORS allowlist in `app.js` includes `http://localhost:5173` and hardcoded hosting domains. It is not configurable through an environment variable. Requests without an `Origin` header are accepted. This controls browser cross-origin access and is not authentication.
 
@@ -122,12 +122,18 @@ The CORS allowlist in `app.js` includes `http://localhost:5173` and hardcoded ho
 
 - Backend `test` runs Vitest with V8 coverage and text/HTML reporters; `test:watch` runs interactive Vitest. The two test files exercise user-response formatting and JWT generation only. The JWT test assumes the hardcoded default secret, rather than isolating its configuration.
 - Frontend `build` runs `npm install --legacy-peer-deps` before `vite build`. That install can change lockfiles, so the build is not an installation-free validation step. `preview` serves the Vite build locally.
-- Frontend `start` invokes `npx serve -s dist`, although `serve` is not declared as a dependency. The backend Prisma CLI is likewise undeclared; documentation supplies the client-matching version through `npm exec` for local use.
+- Frontend `start` invokes `npx serve -s dist`, although `serve` is not declared as a dependency. The backend Prisma CLI is also fetched at runtime, but every backend script explicitly selects `prisma@6.10.0`, matching the exact `@prisma/client` dependency and both backend-related lockfiles. CLI fetching and engine downloads require network access when not cached.
 - No CI workflow, container configuration, automated browser test suite, frontend test script, or hosting manifest is checked in. The provider switch, backend `start`, and hardcoded domains indicate deployment intent, not a reproducible deployment procedure.
+
+### Railway client-generation failure
+
+A deployment log showed migrations completing, followed by `prisma generate` failing to find `@prisma/client/runtime/query_engine_bg.postgresql.wasm-base64.js`. The require stack pointed to an npm-downloaded CLI, while the repository had no version constraint on that CLI. This is consistent with CLI/client version drift. Backend commands now pin the CLI and client to 6.10.0 so a rebuild cannot silently select a different CLI release. This change does not modify the schema or migration history. Deployment recovery still requires rebuilding the backend with the updated manifest, lockfile, and scripts.
+
+An isolated local check reproduced the same missing-module error with CLI 6.19.0 and Client 6.10.0. With both at 6.10.0, PostgreSQL client generation and initialization succeeded using production-only dependencies. This validates the failing generation step without connecting to the deployed database; a successful Railway deployment remains the final check.
 
 ## Known limitations and follow-up work
 
-These observations are documented separately from onboarding. No application behavior has been changed as part of the documentation work.
+These observations are documented separately from onboarding. The Prisma version pins address deployment tooling; the application limitations below remain unchanged.
 
 | Area | Evidence in the current implementation | Focused follow-up |
 | --- | --- | --- |
@@ -140,7 +146,7 @@ These observations are documented separately from onboarding. No application beh
 | Session and request setup | Local storage holds tokens; `setupAxiosInterceptors()` adds an interceptor on repeated hook mounts | Review token-storage tradeoffs and make interceptor lifecycle explicit. |
 | Response consistency | Idea creation and vote responses omit list fields such as `commentCount`; components replace list records with these responses | Define consistent response shapes or refetch/merge deliberately; test behavior after mutations. |
 | Data access and validation | Multiple Prisma clients; varying validation and error shapes; no pagination on list endpoints | Evaluate a shared client, consistent validation/error contracts, and bounded list queries. |
-| Reproducibility | Undeclared Prisma and `serve` CLIs; frontend build reinstalls dependencies; provider switching edits the tracked schema | Pin tooling in a deliberate dependency update, separate install/build, and test each database workflow. |
+| Reproducibility | Prisma CLI is pinned but fetched by `npx`; `serve` remains unpinned; frontend build reinstalls dependencies; provider switching edits the tracked schema | Consider installing the matched Prisma CLI during the build, pin `serve`, separate install/build, and test each database workflow. |
 | Coverage | Only two utility tests; no authorization, API/database, or browser tests | Prioritize owner isolation, admin response filtering, guest first-use, and vote constraint tests. |
 
 For portfolio presentation, useful next steps are a screenshot of an actual local board, CI for tests and build, and a completed browser onboarding path. A deliberate license choice would clarify reuse; no license file is currently present. These are proposed improvements, not implemented capabilities.

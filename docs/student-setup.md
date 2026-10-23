@@ -46,7 +46,7 @@ npm ci --ignore-scripts
 
 The root `package.json` defines `backend` and `frontend` as npm workspaces, so this installs both applications. Separate installs are unnecessary. This guide uses the root lockfile for repeatable dependency resolution and skips installation scripts because Prisma Client can otherwise attempt to install an unpinned Prisma CLI.
 
-The repository does not declare the Prisma CLI as a dependency. Subsequent commands use `npm exec --package=prisma@6.10.0` to provide a temporary CLI matching the **6.10.0** Prisma Client in the root lockfile. This does not add a project dependency or edit a manifest. Client generation happens explicitly during database setup.
+The backend pins Prisma Client to **6.10.0** and its scripts invoke `npx --yes prisma@6.10.0`. This fetches the matching CLI without adding it as a project dependency. A separate CLI installation is unnecessary. Client generation happens explicitly during database setup.
 
 ## 3. Create local settings files
 
@@ -101,7 +101,7 @@ Use the backend origin **without** `/api`; request paths already include that pr
 From the root:
 
 ```bash
-npm exec --yes --package=prisma@6.10.0 -- npm run db:setup
+npm run db:setup
 ```
 
 The root `db:setup` script calls the backend's `dev:dbsetup`. It selects SQLite, pushes the schema into the local database, and generates Prisma Client. The checked-in migration uses PostgreSQL syntax, so do not use the backend `migrate` script for SQLite setup.
@@ -111,7 +111,7 @@ There is no automatic sample data: `backend/prisma/seed.js` is empty. You will c
 Start both services from the root and leave the terminal running:
 
 ```bash
-npm exec --yes --package=prisma@6.10.0 -- node --env-file=backend/.env --run dev
+node --env-file=backend/.env --run dev
 ```
 
 This runs the existing `npm run dev` workflow with the matching Prisma CLI available and backend settings loaded before startup. Concurrently launches the backend and frontend together. Backend startup repeats the schema push and Prisma Client generation, then runs `node server.js`; it does not automatically restart on source edits. Use **Ctrl+C** to stop both services, then restart them after backend changes.
@@ -129,7 +129,7 @@ For separate terminal output, instead of the combined command, run the following
 
 ```bash
 cd backend
-npm exec --yes --package=prisma@6.10.0 -- node --env-file=.env --run dev
+node --env-file=.env --run dev
 ```
 
 In a second terminal at the repository root:
@@ -205,7 +205,7 @@ The detail-page step matters: a fresh guest browser can submit ideas immediately
 | Symptom | What to check |
 | --- | --- |
 | `npm` is blocked by PowerShell | Use `npm.cmd` instead of `npm`; keep the remaining arguments unchanged. |
-| Prisma CLI is missing or asks to install another version | Use the documented `npm exec --package=prisma@6.10.0` wrapper. It must match the root lockfile's client. |
+| Prisma CLI is missing or asks to install another version | Use the backend npm scripts, which invoke `npx --yes prisma@6.10.0`. Avoid bare `npx prisma`, which may fetch a different version. |
 | Schema/provider or missing-table error | Confirm the SQLite `DATABASE_URL`, then rerun the documented `db:setup` command from the root. |
 | Prisma prints only `Schema engine error` on a new SQLite database | If your shell defines `RUST_LOG`, temporarily set it to `info` and retry (`$env:RUST_LOG='info'` in PowerShell; `export RUST_LOG=info` in Bash). Prisma 6.10 can hide the missing-database diagnostic when native logs are filtered. Client generation also requires access to Prisma's engine-download host. |
 | API requests fail in the browser | Confirm both services are running, `VITE_API_URL` points to the backend origin without `/api`, and the frontend uses `http://localhost:5173`. |
