@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import api, { setupAxiosInterceptors } from "@/lib/api";
+import api from "@/lib/api";
 
 const AuthContext = createContext();
 
@@ -7,7 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true); // NEW
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -16,7 +16,6 @@ export function AuthProvider({ children }) {
     if (storedUser && token) {
       setUser(JSON.parse(storedUser));
       setIsAuthenticated(true);
-      setupAxiosInterceptors(); // configure API headers
     }
 
     setLoading(false); // done loading localStorage
@@ -31,7 +30,6 @@ export function AuthProvider({ children }) {
       setUser(res.data.user);
       setIsAuthenticated(true);
       setError(null);
-      setupAxiosInterceptors(); // apply token for future requests
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Login failed");
     }
@@ -46,7 +44,6 @@ export function AuthProvider({ children }) {
       setUser(res.data.user);
       setIsAuthenticated(true);
       setError(null);
-      setupAxiosInterceptors();
     } catch (err) {
       setError(
         err.response?.data?.error || err.message || "Registration failed"

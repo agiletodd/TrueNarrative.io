@@ -1,1 +1,12 @@
 node_modules/
+dist/
+coverage/
+
+# Local configuration and secrets (the .env.example templates are tracked)
+.env
+.env.*
+!.env.example
+
+# Local SQLite databases
+*.db
+*.db-journal

@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useApi } from "@/hooks/useApi";
+import api from "@/lib/api";
 
 export default function AdminDashboard() {
-  const api = useApi();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +18,7 @@ export default function AdminDashboard() {
     }
 
     fetchStats();
-  }, [api]);
+  }, []);
 
   if (loading) return <div className="p-6">Loading dashboard...</div>;
   if (!stats)

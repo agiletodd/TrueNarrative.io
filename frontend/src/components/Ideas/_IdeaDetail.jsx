@@ -5,11 +5,10 @@ import { toast } from "react-hot-toast";
 import VoteControls from "./_VoteControls";
 import { useVote } from "@/hooks/useVote";
 import { useGuestId } from "@/hooks/useGuestId";
-import { useApi } from "@/hooks/useApi";
+import api from "@/lib/api";
 
 export default function IdeaDetail() {
   const { guid, ideaId } = useParams();
-  const api = useApi();
 
   const [idea, setIdea] = useState(null);
   const [newComment, setNewComment] = useState("");

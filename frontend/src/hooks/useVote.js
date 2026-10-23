@@ -1,8 +1,7 @@
-import { useApi } from "@/hooks/useApi";
+import api from "@/lib/api";
 import { toast } from "react-hot-toast";
 
 export function useVote() {
-  const api = useApi();
   const guestId = localStorage.getItem("guestId");
 
   return async function vote(ideaId, type) {

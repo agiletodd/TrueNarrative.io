@@ -3,13 +3,12 @@ import { useParams } from "react-router-dom";
 import IdeaCard from "./_IdeaCard";
 import IdeaForm from "./_IdeaForm";
 import { useVote } from "@/hooks/useVote";
-import { useApi } from "@/hooks/useApi";
+import api from "@/lib/api";
 
 const statuses = ["All", "New", "Done", "Retired"];
 
 export default function Ideas() {
   const { guid } = useParams();
-  const api = useApi();
   const [product, setProduct] = useState(null);
   const [ideas, setIdeas] = useState([]);
   const [filter, setFilter] = useState("All");

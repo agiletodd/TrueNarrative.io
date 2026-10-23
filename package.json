@@ -1,16 +1,18 @@
 {
-  "name": "truenarrative-monorepo",
+  "name": "truenarrative",
   "private": true,
+  "description": "Development scripts for the TrueNarrative backend and frontend, which are independent npm packages.",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
-    "install:all": "npm --prefix backend install && npm --prefix frontend install",
-    "db:setup": "npm --prefix backend run dev:dbsetup"
+    "setup": "npm ci && npm ci --prefix backend && npm ci --prefix frontend",
+    "db:setup": "npm --prefix backend run db:setup",
+    "dev": "concurrently --names api,web --prefix-colors blue,magenta \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "test": "npm --prefix backend test",
+    "build": "npm --prefix frontend run build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
-  },
-  "workspaces": [
-    "backend",
-    "frontend"
-  ]
+  }
 }

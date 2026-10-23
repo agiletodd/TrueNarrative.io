@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useApi } from "@/hooks/useApi";
+import api from "@/lib/api";
 
 export default function ProductFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const api = useApi();
   const isEdit = !!id;
 
   const [name, setName] = useState("");

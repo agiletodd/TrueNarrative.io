@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
+import { config } from "./src/config.js";
 import authRouter from "./src/routes/authRoutes.js";
 import ideaRoutes from "./src/routes/ideaRoutes.js";
 import productRoutes from "./src/routes/productRoutes.js";
@@ -10,33 +9,16 @@ import ideaCommentRoutes from "./src/routes/ideaCommentRoutes.js";
 import adminRouter from "./src/routes/adminRoutes.js";
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://frontend-truenarrativeio-production.up.railway.app",
-  "frontend.railway.internal",
-  "frontend.railway.internal",
-  "https://www.truenarrative.io",
-  "https://truenarrative.io",
-];
-
 app.use(
   cors({
+    // Requests without an Origin header (curl, server-to-server) are allowed;
+    // CORS only governs which browser pages may read API responses.
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
+      callback(null, !origin || config.corsOrigins.includes(origin));
     },
-    credentials: true,
   })
 );
 app.use(express.json());
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-app.use(express.static(path.join(__dirname, "../public")));
 
 app.use("/api", authRouter);
 app.use("/api", ideaRoutes);

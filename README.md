@@ -24,7 +24,7 @@ Some workflows are incomplete. Registration exists in the API, but its browser r
 | Backend | Node.js, Express 5, JavaScript ES modules |
 | Database | Prisma Client 6; SQLite for local development; PostgreSQL migration files and a production provider-switch script |
 | Authentication | Email/password login, bcrypt password hashing, JSON Web Tokens, React Context and browser local storage |
-| Development tooling | npm workspaces, Concurrently, cross-env, Vitest with V8 coverage |
+| Development tooling | Independent npm packages with their own lockfiles, Concurrently, Vite dev proxy, Vitest |
 
 PostgreSQL-related scripts are present; this repository does not include a complete, verified hosting configuration.
 
@@ -43,7 +43,7 @@ flowchart LR
     subgraph Backend[Node.js and Express]
         Routes[API routes and auth middleware]
         Controllers[Feature controllers]
-        Prisma[Prisma Client instances]
+        Prisma[Shared Prisma Client]
         Routes --> Controllers
         Routes --> Prisma
         Controllers --> Prisma
@@ -53,7 +53,7 @@ flowchart LR
     Prisma -.->|Production scripts select| PostgreSQL[(PostgreSQL)]
 ```
 
-The frontend and backend run as separate development services. Vite serves the browser application; Axios calls the backend URL configured in `VITE_API_URL`. Express mounts feature routers under `/api`, applies authentication where required, and delegates database operations to controllers using Prisma. Authentication middleware also queries the database to load the current user.
+The frontend and backend run as separate development services. Vite serves the browser application and proxies `/api` requests to the backend, so the browser sees a single origin in development; a production build can instead call a separate API origin set in `VITE_API_URL`. Express mounts feature routers under `/api`, applies authentication where required, and delegates database operations to controllers using Prisma. Authentication middleware also queries the database to load the current user.
 
 Feature folders organize React components around authentication, products, ideas, and administration. React Context owns authentication state, while components hold their own fetched data and form state. On the server, routes, middleware, controllers, and utilities have separate responsibilities; controllers query Prisma directly rather than using a separate service layer.
 
@@ -69,43 +69,24 @@ The [architecture guide](docs/architecture.md) covers routes, database relations
 
 ## Getting started
 
-Use **Node.js 22 or newer**, npm, and Git. This guide uses Node's environment-file loading and script runner. SQLite runs locally without a separate database server.
+Use **Node.js 22 or newer**, npm, and Git. SQLite runs locally without a separate database server.
 
 ```bash
 git clone https://github.com/agiletodd/TrueNarrative.io.git
 cd TrueNarrative.io
-npm ci --ignore-scripts
+npm run setup
 ```
 
-The root install covers both npm workspaces. Install scripts are skipped here to avoid Prisma's automatic CLI installation. Backend scripts explicitly run Prisma **6.10.0**, matching the pinned Prisma Client, through `npx`; a separate CLI installation is unnecessary.
+`setup` runs `npm ci` for the root scripts, the backend, and the frontend. They are independent npm packages, each with its own lockfile, matching how they are deployed. The Prisma CLI is a pinned backend dependency (6.10.0, the same version as Prisma Client), so nothing is downloaded at runtime.
 
-Copy [backend/.env.example](backend/.env.example) to `backend/.env` and [frontend/.env.example](frontend/.env.example) to `frontend/.env`. Replace the JWT placeholder with a locally generated value. The full [student setup guide](docs/student-setup.md) includes copy commands and secret generation.
-
-```dotenv
-# backend/.env
-DATABASE_URL="file:./dev.db"
-JWT_SECRET="replace-with-a-locally-generated-random-value"
-PORT=4000
-```
-
-```dotenv
-# frontend/.env
-VITE_API_URL=http://localhost:4000
-```
-
-From the repository root:
+Copy [backend/.env.example](backend/.env.example) to `backend/.env` and replace the `JWT_SECRET` placeholder with a generated value; the backend refuses to start without a valid secret. The frontend needs no settings file in development. The [student setup guide](docs/student-setup.md) includes copy commands and secret generation.
 
 ```bash
-npm run db:setup
-node --env-file=backend/.env --run dev
+npm run db:setup   # creates backend/prisma/dev.db and generates Prisma Client
+npm run dev        # starts the API on :4000 and the frontend on Vite's port
 ```
 
-The first command creates `backend/prisma/dev.db` from the SQLite schema and generates Prisma Client. The second invokes the existing root `dev` script, which starts both services. It loads backend settings before any application modules run so JWT signing uses the configured secret. Startup also repeats the database push and client generation. Prisma CLI downloads require network access on first use.
-
-Open:
-
-- Frontend: <http://localhost:5173>
-- API health: <http://localhost:4000/health> (returns `status: "ok"` and a timestamp; does not check the database)
+Open the frontend URL that Vite prints (normally <http://localhost:5173>). Vite forwards `/api` to the backend, so the frontend works on whichever port Vite picks. The API health check is at <http://localhost:4000/health>; it reports the HTTP server only and does not check the database. In development, the backend restarts automatically when its files change.
 
 **First account:** the browser registration route is disabled. Follow [the account setup and walkthrough](docs/student-setup.md#5-create-an-account-and-verify-the-application) to register through the API, then open `/login` directly and create a product. New databases have no sample users or products; the seed file is empty.
 
@@ -113,14 +94,14 @@ For classroom participation, fork the repository and clone your fork as describe
 
 ### Tests and frontend build
 
-From the root, after installing dependencies:
+From the root:
 
 ```bash
-npm --prefix backend test
-npm --prefix frontend run build
+npm test           # backend Vitest suite (uses its own test settings, not backend/.env)
+npm run build      # production frontend build into frontend/dist
 ```
 
-The backend has two utility tests covering JWT generation and user-response formatting. The JWT test assumes the utility's default secret, so run it from a shell without an exported `JWT_SECRET`. There are no API integration or browser tests. The frontend build script runs another dependency installation with `--legacy-peer-deps` before Vite builds `frontend/dist`; review lockfile changes if you run it. No root test, build, or lint script is defined.
+The backend currently has utility tests covering JWT signing/verification and user-response formatting. There are no API integration or browser tests yet; see [the engineering roadmap](docs/engineering-roadmap.md). `npm --prefix backend run test:coverage` adds a coverage report.
 
 ## Repository structure
 
@@ -128,10 +109,12 @@ The backend has two utility tests covering JWT generation and user-response form
 .
 |-- backend/
 |   |-- app.js                 # Express setup, CORS, route mounting, health
-|   |-- server.js              # Environment loading and HTTP listener
+|   |-- server.js              # HTTP listener
 |   |-- prisma/                # Schema, PostgreSQL migration, empty seed file
 |   |-- scripts/               # SQLite/PostgreSQL provider switch
 |   `-- src/
+|       |-- config.js          # Loads and validates backend/.env at startup
+|       |-- db.js              # Shared Prisma Client
 |       |-- controllers/       # Feature handlers and database queries
 |       |-- middleware/        # Required/optional auth and admin checks
 |       |-- routes/            # API endpoint definitions
@@ -149,8 +132,10 @@ The backend has two utility tests covering JWT generation and user-response form
 |       `-- main.jsx           # React entry point and providers
 |-- docs/
 |   |-- student-setup.md       # Pre-class onboarding and verification
-|   `-- architecture.md        # Technical reference and known limitations
-`-- package.json               # Workspace configuration and shared scripts
+|   |-- architecture.md        # Technical reference and known limitations
+|   |-- engineering-roadmap.md # Planned engineering improvements
+|   `-- engineering-progress.md # Progress, findings, and validation log
+`-- package.json               # Root scripts: setup, db:setup, dev, test, build
 ```
 
 ## Learning objectives

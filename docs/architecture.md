@@ -4,7 +4,7 @@ This guide describes the checked-in implementation. It is a reference for follow
 
 ## Application boundaries
 
-The root [package.json](../package.json) declares two npm workspaces. Its `dev` script uses Concurrently to run the backend and frontend scripts. There is no root build, test, or lint script.
+The backend and frontend are independent npm packages, each with its own `package.json` and lockfile, matching how they are deployed as separate services. The root [package.json](../package.json) holds only development scripts: `setup` (runs `npm ci` in all three), `db:setup`, `dev` (Concurrently runs both services), `test`, and `build`. There is no lint script.
 
 ### Frontend
 
@@ -12,9 +12,9 @@ The root [package.json](../package.json) declares two npm workspaces. Its `dev` 
 - [router.jsx](../frontend/src/router.jsx) nests pages inside `App` and `Layout`; `Layout` supplies navigation and the content area. `RequireAuth` guards product-management screens and `RequireAdmin` guards `/admin`.
 - Components are grouped by feature under [components/](../frontend/src/components/). Product and idea forms are separate from list/detail views; voting controls are shared between idea cards and details.
 - [AuthContext.jsx](../frontend/src/context/AuthContext.jsx) holds the current user, authentication flags, loading state, and login/register/logout actions. It restores the user and token from local storage.
-- [api.js](../frontend/src/lib/api.js) creates an Axios client using `VITE_API_URL`; request interceptors retrieve the stored token and attach a bearer header.
-- [hooks/](../frontend/src/hooks/) contains API setup, vote submission, and guest-ID generation. Other data is managed in component state; there is no shared query cache or external state store.
-- [vite.config.js](../frontend/vite.config.js) enables React, maps `@` to `src`, and opens the browser during development. It does not configure an API proxy.
+- [api.js](../frontend/src/lib/api.js) creates the single Axios client. Its base URL is `VITE_API_URL` when set, otherwise the page's own origin. One request interceptor, registered when the module loads, attaches the stored token as a bearer header.
+- [hooks/](../frontend/src/hooks/) contains vote submission and guest-ID generation. Other data is managed in component state; there is no shared query cache or external state store.
+- [vite.config.js](../frontend/vite.config.js) enables React, maps `@` to `src`, opens the browser during development, and proxies `/api` to the backend (`API_PROXY_TARGET`, default `http://localhost:4000`). The proxy gives the browser one origin in development, so local work does not depend on CORS or on which port Vite chooses.
 
 | Browser path | View and access |
 | --- | --- |
@@ -31,11 +31,11 @@ The root [package.json](../package.json) declares two npm workspaces. Its `dev` 
 
 ### Backend
 
-[server.js](../backend/server.js) calls `dotenv.config()` and starts the listener on `PORT` or 4000. [app.js](../backend/app.js) configures JSON parsing, a fixed CORS allowlist, a static directory, feature routers mounted at `/api`, and `/health`.
+[config.js](../backend/src/config.js) loads `backend/.env` and validates the environment once; modules that need settings import it, so a missing or placeholder secret stops startup with a clear message instead of falling back to a default. [server.js](../backend/server.js) starts the listener on the configured port. [app.js](../backend/app.js) configures CORS from the configured origin list, JSON parsing, feature routers mounted at `/api`, and `/health`.
 
-Routes choose middleware and controller functions. Controllers contain request validation, ownership checks, response formatting, and direct Prisma queries. Several controllers and the authentication middleware each instantiate their own Prisma Client; there is no shared database-client module or separate service/repository layer.
+Routes choose middleware and controller functions. Controllers contain request validation, ownership checks, response formatting, and direct Prisma queries. All database access goes through one Prisma Client exported by [db.js](../backend/src/db.js); there is no separate service or repository layer.
 
-The configured Express static directory resolves to a root-level `public/`, which is absent. The frontend's actual public assets live in `frontend/public/`, and Vite builds into `frontend/dist/`. Express does not currently serve that build or provide SPA fallback routing.
+Express serves only the API. Vite builds the frontend into `frontend/dist/`, and the frontend's `start` script serves that build with `serve -s dist`, which falls back to `index.html` for client-side routes.
 
 ## API reference
 
@@ -85,14 +85,13 @@ The vote model's unique constraints support separate authenticated and guest ide
 
 ### Local SQLite and PostgreSQL scripts
 
-[swapPrismaProvider.js](../backend/scripts/swapPrismaProvider.js) rewrites the datasource provider in the tracked schema: `production` selects PostgreSQL; other values select SQLite.
+The committed schema uses SQLite. Prisma does not allow the datasource provider to come from an environment variable, so deployment switches it explicitly:
 
-- `dev:dbsetup` and `dev:sqlite` set development mode for the provider-switch command, use `prisma db push`, and generate the client. `dev:sqlite` then starts the HTTP server. Backend `dev` delegates to it.
-- Backend `start` sets production mode for the switch, runs `prisma migrate deploy`, generates the client, and starts the server. The `cross-env` assignment applies to the switch command before `&&`, rather than setting the environment for the entire chain.
-- The [migration lock](../backend/prisma/migrations/migration_lock.toml) and [initial SQL migration](../backend/prisma/migrations/20250620132613_init/migration.sql) target PostgreSQL. They are not a SQLite migration workflow.
+- Backend `db:setup` runs `prisma db push`, which creates or updates the local SQLite database and regenerates Prisma Client. Local development does not use migrations.
+- Backend `dev` runs `node --watch server.js`; it no longer re-pushes the schema on every start.
+- Backend `start` (deployment) runs [swapPrismaProvider.js](../backend/scripts/swapPrismaProvider.js) `postgresql`, then `prisma migrate deploy`, `prisma generate`, and the server. The switch edits `schema.prisma` inside the deployment container; running `start` locally would leave that tracked file modified (restore with `node scripts/swapPrismaProvider.js sqlite`).
+- The [migration lock](../backend/prisma/migrations/migration_lock.toml) and [initial SQL migration](../backend/prisma/migrations/20250620132613_init/migration.sql) target PostgreSQL. Creating a new PostgreSQL migration requires a PostgreSQL database and is not part of the local workflow.
 - [seed.js](../backend/prisma/seed.js) is empty and no seed command is configured.
-
-The backend `migrate` script passes `--env-file=.env` to Prisma, which is not an option of the matching Prisma 6 `migrate dev` command. Prisma loads `.env` itself. That script also conflicts with the local SQLite provider and PostgreSQL migration history; the student guide uses `db:setup` instead.
 
 ## Authentication and authorization
 
@@ -108,22 +107,24 @@ The browser stores both token and user in local storage. Logout removes those va
 
 | Variable | Consumer | Meaning |
 | --- | --- | --- |
-| `DATABASE_URL` | Prisma schema/client/CLI | Local `file:./dev.db`, or a PostgreSQL connection string for the production-provider path |
-| `JWT_SECRET` | JWT helper | Signing/verification key captured when the module is imported |
+| `DATABASE_URL` | Prisma client/CLI; validated by `config.js` | Local `file:./dev.db`, or a PostgreSQL connection string for the deployment path |
+| `JWT_SECRET` | `config.js` → JWT helper | Required signing key, at least 32 characters; startup fails if missing or left as the template placeholder |
 | `PORT` | Backend listener | Optional HTTP port, default 4000 |
-| `NODE_ENV` | Provider-switch script | Selects PostgreSQL only when exactly `production`; development scripts set it for the switch |
-| `VITE_API_URL` | Browser Axios client | Backend origin; Vite reads it into the frontend bundle |
+| `CORS_ORIGINS` | `config.js` → CORS middleware | Optional comma-separated browser origins; defaults to `http://localhost:5173` and the project's hosting domains |
+| `VITE_API_URL` | Browser Axios client (build time) | Optional backend origin for builds whose API is on another origin; unset means same origin |
+| `API_PROXY_TARGET` | Vite dev server only | Optional; where `/api` is proxied in development, default `http://localhost:4000` |
 
-See [student-setup.md](student-setup.md) for commands that preload backend settings. They use Node 22+. Backend scripts fetch the pinned Prisma CLI through `npx`. Loading the environment before module evaluation matters: static imports run before the body of `server.js`, and the JWT helper otherwise can capture its hardcoded fallback before `dotenv.config()` loads the file.
+`config.js` loads `backend/.env` by path, so scripts work from any working directory, and variables already set in the environment (including the test settings in `vitest.config.js`) take precedence over the file.
 
-The CORS allowlist in `app.js` includes `http://localhost:5173` and hardcoded hosting domains. It is not configurable through an environment variable. Requests without an `Origin` header are accepted. This controls browser cross-origin access and is not authentication.
+CORS only matters when a browser page on another origin calls the API, which is the deployed setup; local development uses the Vite proxy. Requests from origins outside the list get no CORS headers, so the browser blocks the response. Requests without an `Origin` header are accepted. CORS controls browser cross-origin reads and is not authentication. The API uses bearer tokens rather than cookies, so cross-origin credentials are not enabled.
 
 ## Validation and deployment configuration
 
-- Backend `test` runs Vitest with V8 coverage and text/HTML reporters; `test:watch` runs interactive Vitest. The two test files exercise user-response formatting and JWT generation only. The JWT test assumes the hardcoded default secret, rather than isolating its configuration.
-- Frontend `build` runs `npm install --legacy-peer-deps` before `vite build`. That install can change lockfiles, so the build is not an installation-free validation step. `preview` serves the Vite build locally.
-- Frontend `start` invokes `npx serve -s dist`, although `serve` is not declared as a dependency. The backend Prisma CLI is also fetched at runtime, but every backend script explicitly selects `prisma@6.10.0`, matching the exact `@prisma/client` dependency and both backend-related lockfiles. CLI fetching and engine downloads require network access when not cached.
-- No CI workflow, container configuration, automated browser test suite, frontend test script, or hosting manifest is checked in. The provider switch, backend `start`, and hardcoded domains indicate deployment intent, not a reproducible deployment procedure.
+- The root `setup` script runs `npm ci` for the root, backend, and frontend lockfiles. Recent npm versions run dependency install scripts only for packages listed under `allowScripts` in each `package.json`: Prisma (engine download and client generation) and esbuild. bcrypt's source build is denied because it ships prebuilt binaries; older npm versions ignore the field.
+- Backend `test` runs Vitest with test-only `JWT_SECRET` and `DATABASE_URL` values from `vitest.config.js`; `test:coverage` adds a V8 coverage report. Current tests cover user-response formatting and JWT signing/verification only.
+- Frontend `build` runs `vite build` only; it does not install dependencies. `preview` serves the build locally, and `start` serves it with the pinned `serve` dependency.
+- The Prisma CLI is a pinned backend dependency (6.10.0, matching `@prisma/client`), so builds and startup do not download it.
+- No CI workflow, container configuration, automated browser test suite, frontend test script, or hosting manifest is checked in. The provider switch, backend `start`, and default hosting domains indicate deployment intent, not a reproducible deployment procedure.
 
 ### Railway client-generation failure
 
@@ -133,20 +134,19 @@ An isolated local check reproduced the same missing-module error with CLI 6.19.0
 
 ## Known limitations and follow-up work
 
-These observations are documented separately from onboarding. The Prisma version pins address deployment tooling; the application limitations below remain unchanged.
+These observations are documented separately from onboarding. Work to address them is tracked in the [engineering roadmap](engineering-roadmap.md) and [progress log](engineering-progress.md).
 
 | Area | Evidence in the current implementation | Focused follow-up |
 | --- | --- | --- |
-| JWT configuration | `utils/jwt.js` captures a hardcoded fallback at import; `server.js` loads dotenv after static imports evaluate | Load and validate configuration before imports; require a configured secret; test custom-secret startup. The guide preloads `.env` as a local workaround. |
 | Admin response fields | `adminController.js` queries `topUsers` with relation counts but no scalar-field selection, then returns full records, including password hashes | Select only intended response fields and add an API response test. |
 | Account onboarding | Registration route and login navigation are commented out, despite a working registration API and login page | Complete browser onboarding and add an end-to-end account/product walkthrough. |
 | Guest voting | `Ideas.jsx` uses `useVote` without initializing `useGuestId`; the detail page initializes it, but `useVote` reads storage before that initialization on its first render | Initialize identity before vote submission and test a fresh session. Opening the detail page allows a subsequent render to read the ID. |
 | Guest trust and exposure | Vote-status responses accept a caller-supplied guest ID; public comment responses include guest IDs; there is no guest verification, server-side rate limiting, or abuse-control middleware | Define the guest trust model, minimize returned identity fields, and test abuse cases before relying on guest IDs for integrity. |
 | Incomplete status workflow | `Idea.status` is free text; the UI filters three named statuses, but no update endpoint exists | Define allowed transitions and ownership rules before implementing status changes. |
-| Session and request setup | Local storage holds tokens; `setupAxiosInterceptors()` adds an interceptor on repeated hook mounts | Review token-storage tradeoffs and make interceptor lifecycle explicit. |
+| Session handling | Local storage holds tokens; an expired token is not detected by the frontend, which stays signed in while requests fail | Review token-storage tradeoffs and handle 401 responses. |
 | Response consistency | Idea creation and vote responses omit list fields such as `commentCount`; components replace list records with these responses | Define consistent response shapes or refetch/merge deliberately; test behavior after mutations. |
-| Data access and validation | Multiple Prisma clients; varying validation and error shapes; no pagination on list endpoints | Evaluate a shared client, consistent validation/error contracts, and bounded list queries. |
-| Reproducibility | Prisma CLI is pinned but fetched by `npx`; `serve` remains unpinned; frontend build reinstalls dependencies; provider switching edits the tracked schema | Consider installing the matched Prisma CLI during the build, pin `serve`, separate install/build, and test each database workflow. |
+| Validation and errors | Varying validation and error shapes (`error` vs `message`); no length limits; no pagination on list endpoints | Consistent validation/error contracts and bounded list queries. |
+| Dependencies | `npm audit` reports advisories that need major upgrades: Vitest 3 (dev only), `serve`'s `compression` dependency (frontend runtime), and Tailwind 3's `postcss-selector-parser` (build time) | Upgrade Vitest with the test suite work; replace or patch the `serve` path; evaluate Tailwind 4 separately. |
 | Coverage | Only two utility tests; no authorization, API/database, or browser tests | Prioritize owner isolation, admin response filtering, guest first-use, and vote constraint tests. |
 
 For portfolio presentation, useful next steps are a screenshot of an actual local board, CI for tests and build, and a completed browser onboarding path. A deliberate license choice would clarify reuse; no license file is currently present. These are proposed improvements, not implemented capabilities.

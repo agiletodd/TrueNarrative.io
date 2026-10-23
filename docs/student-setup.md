@@ -2,14 +2,14 @@
 
 Complete this guide **before the first session**. You will work from your own fork of a real product feedback application: create products, gather ideas, vote, and discuss suggestions while learning how the frontend, API, and database fit together.
 
-This guide preserves the original README's classroom onboarding workflow, with corrections for dependency requirements, database setup, and account creation. The [project README](../README.md) provides the overview; [architecture.md](architecture.md) explains the implementation.
+This guide preserves the original README's classroom onboarding workflow. The [project README](../README.md) provides the overview; [architecture.md](architecture.md) explains the implementation.
 
 ## What you need first
 
-- **Node.js 22 or newer**, including npm. The commands below use Node's `--env-file` and `--run` options; the locked React Router dependency itself requires Node 20 or newer. The old Node 18 minimum is insufficient.
+- **Node.js 22 or newer**, including npm. The backend's development script uses Node's built-in `--watch` mode, and the locked React Router dependency requires Node 20 or newer.
 - **Git** and a GitHub account so you can fork and clone the repository.
 - A code editor, such as Visual Studio Code.
-- Internet access to install packages and fetch the matching Prisma CLI.
+- Internet access to install packages.
 
 You do **not** need to install a database server: local development uses a SQLite file. The frontend uses Vite, React, and Tailwind CSS; the backend uses Express and Prisma. Authentication uses email/password and JWTs; there is no Google or Facebook login.
 
@@ -41,12 +41,14 @@ Keep using your fork for class contributions. The direct-clone command in the pr
 Run from the repository root:
 
 ```bash
-npm ci --ignore-scripts
+npm run setup
 ```
 
-The root `package.json` defines `backend` and `frontend` as npm workspaces, so this installs both applications. Separate installs are unnecessary. This guide uses the root lockfile for repeatable dependency resolution and skips installation scripts because Prisma Client can otherwise attempt to install an unpinned Prisma CLI.
+This runs `npm ci` three times: for the root development scripts, for `backend/`, and for `frontend/`. The backend and frontend are independent npm packages, each with its own `package-lock.json`, so `npm ci` installs exactly the locked versions. Use `npm ci` (or `npm run setup`) rather than `npm install` unless you mean to change dependencies.
 
-The backend pins Prisma Client to **6.10.0** and its scripts invoke `npx --yes prisma@6.10.0`. This fetches the matching CLI without adding it as a project dependency. A separate CLI installation is unnecessary. Client generation happens explicitly during database setup.
+The backend pins both Prisma Client and the Prisma CLI to **6.10.0**; the CLI is installed with the other dependencies, so a separate or global Prisma installation is unnecessary.
+
+Recent npm versions run a dependency's install scripts only when the project allows them. The allowed packages are listed under `allowScripts` in each `package.json` (Prisma's engine download, and esbuild for Vite); bcrypt's optional source build is skipped because it ships prebuilt binaries.
 
 ## 3. Create local settings files
 
@@ -82,19 +84,13 @@ Generate a random JWT signing value locally:
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-Paste the result into `JWT_SECRET`, replacing the placeholder. Keep it private; do not copy it into commits, screenshots, or classroom messages.
+Paste the result into `JWT_SECRET`, replacing the placeholder. Keep it private; do not copy it into commits, screenshots, or classroom messages. The backend checks its settings at startup and stops with a message naming the problem if `DATABASE_URL` is missing or `JWT_SECRET` is missing, still the placeholder, or shorter than 32 characters.
 
-`DATABASE_URL` is resolved relative to the Prisma schema directory, so `file:./dev.db` creates `backend/prisma/dev.db`. `PORT` is optional and defaults to 4000.
+`DATABASE_URL` is resolved relative to the Prisma schema directory, so `file:./dev.db` creates `backend/prisma/dev.db`. `PORT` is optional and defaults to 4000. A shell variable with the same name takes precedence over the file.
 
-The startup command below loads this file before application modules are imported. That matters because the JWT helper reads its secret at module initialization, before the existing `server.js` call to `dotenv.config()` executes. A shell variable with the same name takes precedence over an environment-file value.
+### Frontend: `frontend/.env` (optional)
 
-### Frontend: `frontend/.env`
-
-```dotenv
-VITE_API_URL=http://localhost:4000
-```
-
-Use the backend origin **without** `/api`; request paths already include that prefix. Vite exposes `VITE_` values to browser code, so this file must not contain secrets. Both workspace `.gitignore` files exclude their `.env` files.
+Nothing is required for local development. The Vite dev server forwards requests beginning with `/api` to the backend at `http://localhost:4000`, so the browser talks to a single origin and no CORS configuration is involved. The template documents two optional settings: `API_PROXY_TARGET`, if your backend runs on a different port, and `VITE_API_URL`, used by production builds whose API lives on another origin. Vite exposes `VITE_` values to browser code, so this file must never contain secrets. Both `.env` files are ignored by Git.
 
 ## 4. Initialize the database and start the app
 
@@ -104,41 +100,34 @@ From the root:
 npm run db:setup
 ```
 
-The root `db:setup` script calls the backend's `dev:dbsetup`. It selects SQLite, pushes the schema into the local database, and generates Prisma Client. The checked-in migration uses PostgreSQL syntax, so do not use the backend `migrate` script for SQLite setup.
+This pushes the Prisma schema into a local SQLite database (`backend/prisma/dev.db`) and generates Prisma Client. Run it again after changing `schema.prisma`. The checked-in migration history targets PostgreSQL for deployment; local SQLite development uses `db push` instead of migrations.
 
 There is no automatic sample data: `backend/prisma/seed.js` is empty. You will create your own account and product in the next step.
 
 Start both services from the root and leave the terminal running:
 
 ```bash
-node --env-file=backend/.env --run dev
+npm run dev
 ```
 
-This runs the existing `npm run dev` workflow with the matching Prisma CLI available and backend settings loaded before startup. Concurrently launches the backend and frontend together. Backend startup repeats the schema push and Prisma Client generation, then runs `node server.js`; it does not automatically restart on source edits. Use **Ctrl+C** to stop both services, then restart them after backend changes.
+Concurrently runs the backend (labelled `api`) and the frontend (labelled `web`) together. The backend restarts automatically when its source files change; Vite hot-reloads the frontend. Use **Ctrl+C** to stop both.
 
 Open:
 
-- Frontend: <http://localhost:5173>
+- Frontend: the `Local:` URL Vite prints, normally <http://localhost:5173>. If that port is busy, Vite picks the next free one (5174, …), and the app still works because API calls go through Vite's proxy.
 - Backend health: <http://localhost:4000/health>
-
-Keep frontend port 5173 free: Vite may choose another port if it is occupied, but the backend's local CORS allowlist permits `http://localhost:5173`. Restart Vite after changing frontend environment settings.
 
 ### Running the services separately
 
-For separate terminal output, instead of the combined command, run the following in a terminal starting at the repository root:
+For separate terminal output, run each service in its own terminal from the repository root:
 
 ```bash
-cd backend
-node --env-file=.env --run dev
+npm --prefix backend run dev
 ```
-
-In a second terminal at the repository root:
 
 ```bash
-npm --prefix frontend run dev -- --port 5173 --strictPort
+npm --prefix frontend run dev
 ```
-
-The explicit frontend port prevents Vite from silently selecting an origin that the API rejects.
 
 ## 5. Create an account and verify the application
 
@@ -179,7 +168,7 @@ Expect HTTP **201** and a numeric `userId`. This program deliberately prints nei
 
 ### Exercise a complete feedback flow
 
-1. Visit <http://localhost:5173/login> directly. Sign in with your local account and confirm you reach **My Products** at `/dashboard`.
+1. Visit `/login` on the frontend (for example <http://localhost:5173/login>) directly. Sign in with your local account and confirm you reach **My Products** at `/dashboard`.
 2. Add a product with a name and description. Confirm it appears, then edit it to check the owner workflow.
 3. Copy the product's public URL. Open it in a private browser window to try the guest workflow.
 4. Submit an idea with a title and description, then open its detail page. Opening the detail page initializes the guest identifier needed for voting.
@@ -205,13 +194,14 @@ The detail-page step matters: a fresh guest browser can submit ideas immediately
 | Symptom | What to check |
 | --- | --- |
 | `npm` is blocked by PowerShell | Use `npm.cmd` instead of `npm`; keep the remaining arguments unchanged. |
-| Prisma CLI is missing or asks to install another version | Use the backend npm scripts, which invoke `npx --yes prisma@6.10.0`. Avoid bare `npx prisma`, which may fetch a different version. |
-| Schema/provider or missing-table error | Confirm the SQLite `DATABASE_URL`, then rerun the documented `db:setup` command from the root. |
+| Prisma CLI is missing or asks to install another version | Rerun `npm run setup`; the matching CLI is a backend dependency. From `backend/`, `npx prisma` uses that installed version. |
+| Backend exits with `Invalid backend configuration` | Fix the settings it lists in `backend/.env`; see step 3. |
+| Schema/provider or missing-table error | Confirm the SQLite `DATABASE_URL`, then rerun `npm run db:setup` from the root. |
 | Prisma prints only `Schema engine error` on a new SQLite database | If your shell defines `RUST_LOG`, temporarily set it to `info` and retry (`$env:RUST_LOG='info'` in PowerShell; `export RUST_LOG=info` in Bash). Prisma 6.10 can hide the missing-database diagnostic when native logs are filtered. Client generation also requires access to Prisma's engine-download host. |
-| API requests fail in the browser | Confirm both services are running, `VITE_API_URL` points to the backend origin without `/api`, and the frontend uses `http://localhost:5173`. |
+| API requests fail in the browser | Confirm both services are running and the backend health URL responds. If you created `frontend/.env`, leave `VITE_API_URL` unset for local development, and make `API_PROXY_TARGET` match the backend's port. |
 | `/register` is unavailable or no login link appears | Use API registration and open `/login` directly, as shown above. |
 | First guest vote fails | Open an idea detail page to initialize `guestId`, then retry. |
-| Port is occupied | Stop the process using it. If changing backend `PORT`, update `VITE_API_URL` and restart both services. |
+| Port is occupied | Vite moves to the next free port on its own. For the backend, stop the other process or change `PORT` in `backend/.env` and set `API_PROXY_TARGET` in `frontend/.env` to match, then restart both services. |
 
 If you get stuck, ask a teammate or instructor. Share the command you ran, the error message, and your Node/npm versions. Remove tokens, passwords, and environment-file contents from anything you share.
 
@@ -220,10 +210,10 @@ If you get stuck, ask a teammate or instructor. Share the command you ran, the e
 - [ ] Forked the repository into your GitHub account.
 - [ ] Cloned your fork locally.
 - [ ] Installed Node.js, npm, and Git and checked their versions.
-- [ ] Installed workspace dependencies from the root lockfile.
+- [ ] Installed dependencies with `npm run setup`.
 - [ ] Created both `.env` files and replaced the JWT placeholder.
 - [ ] Initialized SQLite and generated Prisma Client using the documented `db:setup` command.
-- [ ] Started both services using the environment-loading `dev` command.
+- [ ] Started both services with `npm run dev`.
 - [ ] Opened the frontend and checked the backend health response.
 - [ ] Registered through the API and logged in through `/login`.
 - [ ] Created a product and verified an idea, vote, and comment persist after reload.

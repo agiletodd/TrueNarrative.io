@@ -1,9 +1,8 @@
 import bcrypt from "bcrypt";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../db.js";
 import { generateToken } from "../utils/jwt.js";
 import { formatUser } from "../utils/formatUser.js";
 
-const prisma = new PrismaClient();
 
 export async function register(req, res) {
   try {
@@ -64,7 +63,5 @@ export async function login(req, res) {
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Internal server error" });
-  } finally {
-    await prisma.$disconnect();
   }
 }

@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
+import { useState } from "react";
 
 export function useGuestId() {
-  const [guestId, setGuestId] = useState(() => {
+  const [guestId] = useState(() => {
     let existing = localStorage.getItem("guestId");
     if (!existing) {
-      existing = uuidv4();
+      existing = crypto.randomUUID();
       localStorage.setItem("guestId", existing);
     }
     return existing;

@@ -1,5 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { prisma } from "../db.js";
 
 export async function submitVote(req, res) {
   const ideaId = parseInt(req.params.ideaId);

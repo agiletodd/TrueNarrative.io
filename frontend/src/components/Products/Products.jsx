@@ -3,10 +3,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Pencil, Trash2, Plus, Eye, Copy, Check } from "lucide-react";
 import ConfirmModal from "@/components/Common/ConfirmModal";
-import { useApi } from "@/hooks/useApi";
+import api from "@/lib/api";
 
 export default function Dashboard() {
-  const api = useApi();
   const [products, setProducts] = useState([]);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
