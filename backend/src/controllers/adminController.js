@@ -60,6 +60,7 @@ export async function getAdminDashboardStats(req, res) {
       },
     });
 
+    // select (not include) so the response never carries password hashes.
     const topUsers = await prisma.user.findMany({
       take: 5,
       orderBy: {
@@ -67,7 +68,12 @@ export async function getAdminDashboardStats(req, res) {
           _count: "desc",
         },
       },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        firstname: true,
+        lastname: true,
+        role: true,
         _count: {
           select: {
             ideas: true,

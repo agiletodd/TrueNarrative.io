@@ -3,13 +3,13 @@
   "private": true,
   "description": "Development scripts for the TrueNarrative backend and frontend, which are independent npm packages.",
   "engines": {
-    "node": ">=22"
+    "node": "^22.13.0 || >=24.0.0"
   },
   "scripts": {
     "setup": "npm ci && npm ci --prefix backend && npm ci --prefix frontend",
     "db:setup": "npm --prefix backend run db:setup",
     "dev": "concurrently --names api,web --prefix-colors blue,magenta \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
-    "test": "npm --prefix backend test",
+    "test": "npm --prefix backend test && npm --prefix frontend test",
     "build": "npm --prefix frontend run build"
   },
   "devDependencies": {

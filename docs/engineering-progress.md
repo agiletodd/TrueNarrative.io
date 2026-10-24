@@ -4,8 +4,8 @@ Working record for the [engineering maturity roadmap](engineering-roadmap.md). I
 
 | Phase | Status | Board item |
 | --- | --- | --- |
-| 1. Engineering foundation | Complete — awaiting review | #1 |
-| 2. Testing & CI | Not started | #2 |
+| 1. Engineering foundation | Complete (commit `37e1aa3`) | #1 |
+| 2. Testing & CI | Complete — awaiting review (CI run on GitHub unverified) | #2 |
 | 3. Core workflows | Not started | #3 |
 | 4. Security & reliability | Not started | #4 |
 | 5. Demo & portfolio | Not started | #5 |
@@ -140,11 +140,18 @@ Checkboxes track implementation. Acceptance criteria live in the [roadmap](engin
 
 ### Phase 2 — Testing & CI
 
-- [ ] Add `supertest` (dev) and API integration tests against the Express app. (T1)
-- [ ] Isolated SQLite test database created per run via Vitest global setup; tables reset between test files. (T2)
-- [ ] Coverage of auth, products, ideas, votes, comments, admin — including authorization boundaries and the existing S1 leak as a regression test once fixed.
-- [ ] GitHub Actions workflow: Node 22, `npm ci` with cache, backend tests, frontend build. Mark unverified until it runs on GitHub. (T3)
-- [ ] Minimal frontend tests (Vitest + Testing Library + jsdom) for a couple of real interactions, or a documented decision not to. (T4) — see decision D3
+- [x] Supertest API integration tests against the real Express app and a real SQLite database: 6 files, 81 tests across auth, products, ideas, votes, comments, admin. (T1)
+- [x] Isolated test database: global setup recreates `backend/prisma/test.db` (`db push --force-reset`, guarded to refuse any other URL) and generates Prisma Client; every test clears all tables; test settings override `.env`; files run serially. (T2)
+- [x] Authorization boundaries: missing/malformed/forged/expired tokens, deleted users, owner-only product update/delete, author-only comment edit/delete, admin role read from the database rather than the token claim, client-supplied `role`/`ownerId`/`status` ignored.
+- [x] **S1 fixed early** (pulled forward from Phase 4): the regression test reproduced password hashes in the admin dashboard response; `topUsers` now uses `select`.
+- [x] Known gaps recorded as `it.todo` (backend: S3, S6, S7 ×2) and one `it.fails` (frontend: W5), each naming its finding.
+- [x] Vitest 3 → 5 (clears the backend advisories); backend `npm audit`: 0 vulnerabilities.
+- [x] Frontend tests (D3): Vitest + React Testing Library + jsdom; idea form submission/validation, sign-in success and failure through the real AuthContext (HTTP client mocked), route guard. (T4)
+- [x] GitHub Actions `ci.yml`: PRs and pushes to `main`; Node 22; npm cache keyed on all three lockfiles; `npm run setup`, backend tests, frontend tests, build; read-only permissions; 15-minute timeout. (T3)
+- [x] Node minimum made precise: `^22.13.0 || >=24.0.0` (Vitest 5 needs 22.12+, jsdom 29 needs 22.13+; jsdom 30 would need 22.22+, so 29 was chosen). `engines` and docs updated.
+- [x] README, `architecture.md`, `student-setup.md` updated.
+
+**Unverified:** the workflow has not run on GitHub (nothing pushed). Its steps were run locally under Node 22.19 / npm 10.9 (the npm generation Actions uses), in a fresh copy. Vitest's automatic GitHub annotations for failures are expected but unconfirmed.
 
 ### Phase 3 — Core workflows
 
@@ -184,7 +191,7 @@ Decisions are recorded here when made. Proposed defaults are listed for the open
 | --- | --- | --- | --- |
 | D1 | How to support SQLite locally and PostgreSQL in production without mutating the tracked schema? | Decided (Phase 1) | SQLite stays committed. Only the deployment `start` script switches the provider (explicit `postgresql` argument), inside the disposable container. Development scripts never touch the schema. A second schema file was rejected: two schemas would drift. |
 | D2 | Migrations vs `db push` for SQLite | Decided (Phase 1) | `db push` for local SQLite (one-time `db:setup`, not on every start); PostgreSQL migrations remain the deployment path. Documented in `architecture.md`. |
-| D3 | Frontend test framework | Open (Phase 2) | Vitest + React Testing Library + jsdom, limited to a few interaction tests, if setup stays small. |
+| D3 | Frontend test framework | Decided (Phase 2) | Vitest + React Testing Library + jsdom: four dev dependencies, configured in `vite.config.js`, no snapshot tests or extra matcher libraries. Three files of interaction tests. |
 | D4 | Rate limiting implementation | Open (Phase 4) | `express-rate-limit` with in-memory store; document that it is per-process. |
 | D6 | Workspaces or independent packages? | Decided (Phase 1, owner) | Independent packages with their own lockfiles. Railway builds each service from its own directory using that directory's lockfile, so the per-package lockfiles are the deployed source of truth. |
 | D5 | Token storage | Open (Phase 4) | Likely keep bearer tokens (no CSRF surface), shorten expiry, handle 401 cleanly, and document the XSS tradeoff vs httpOnly cookies. |
@@ -210,6 +217,21 @@ Run in a clean copy of the working tree (no `node_modules`, `.env`, or database)
 
 The same tests and build also pass in the real working tree.
 
+### Phase 2 (2026-10-23)
+
+| Step | Environment | Result |
+| --- | --- | --- |
+| Backend tests | Node 24.22 (working tree) | 8 files: 85 passed, 4 todo |
+| Frontend tests | Node 24.22 (working tree) | 3 files: 6 passed, 1 expected fail (W5) |
+| CI steps (`npm run setup`, backend tests, frontend tests, build) | Fresh copy, Node 22.19.0 / npm 10.9.3 | All passed; no engine warnings after the jsdom change |
+| Failure reporting | Fresh copy, one assertion deliberately broken | `npm test` exit code 1; output names the test, expected and received values |
+| Backend coverage | `test:coverage` | 84.5% statements, 89.5% branches (lowest: `config.js` error branches, which run before the app loads) |
+| GitHub Actions run | — | Not run (not pushed) |
+
+## Deployment observations
+
+- **2026-10-23, after commit `37e1aa3`:** the deployed backend (Railway, Node 24.10) completed the provider switch, `prisma migrate deploy`, and `prisma generate`, then exited at startup: `JWT_SECRET must be at least 32 characters`. The production secret is shorter than the new minimum. Fix (owner action, not code): set a 32+ character random `JWT_SECRET` in the service's variables and redeploy; existing sessions will be signed out. This is the first real confirmation that the Phase 1 deploy path works up to application startup.
+
 ## Blockers
 
-_(none yet)_
+_(none)_

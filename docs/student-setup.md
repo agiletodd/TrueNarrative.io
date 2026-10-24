@@ -6,7 +6,7 @@ This guide preserves the original README's classroom onboarding workflow. The [p
 
 ## What you need first
 
-- **Node.js 22 or newer**, including npm. The backend's development script uses Node's built-in `--watch` mode, and the locked React Router dependency requires Node 20 or newer.
+- **Node.js 22.13 or newer** (any 24.x or later also works), including npm. This is the minimum the test tooling (Vitest and jsdom) supports; `node --version` must print v22.13.0 or later.
 - **Git** and a GitHub account so you can fork and clone the repository.
 - A code editor, such as Visual Studio Code.
 - Internet access to install packages.
@@ -176,6 +176,10 @@ Expect HTTP **201** and a numeric `userId`. This program deliberately prints nei
 6. Enter a guest display name and comment. Reload and confirm the idea, vote totals, and comment persist.
 
 The detail-page step matters: a fresh guest browser can submit ideas immediately, but the board list does not initialize its guest identifier. Voting from the list before visiting a detail page can fail. Status filters exist, but there is no status-changing workflow yet. These limitations are described in [the architecture guide](architecture.md#known-limitations-and-follow-up-work).
+
+## Run the tests
+
+From the root, `npm test` runs the backend API tests and then the frontend component tests. They use their own temporary database (`backend/prisma/test.db`) and settings, so they never change your `dev.db` or read your `.env`. Run them before and after you change code.
 
 ## Project orientation
 

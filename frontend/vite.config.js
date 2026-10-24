@@ -22,5 +22,9 @@ export default defineConfig(({ mode }) => {
         "/api": env.API_PROXY_TARGET || "http://localhost:4000",
       },
     },
+    test: {
+      environment: "jsdom",
+      setupFiles: "./src/tests/setup.js",
+    },
   };
 });

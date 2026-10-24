@@ -1,15 +1,14 @@
 import { defineConfig } from "vitest/config";
+import { testEnv } from "./src/tests/support/testEnv.js";
 
 export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    // Test-only settings. These take precedence over backend/.env, so tests
-    // never sign tokens with a developer's secret or touch dev.db.
-    env: {
-      JWT_SECRET: "test-only-secret-that-is-at-least-32-characters",
-      DATABASE_URL: "file:./test.db",
-    },
+    env: testEnv,
+    globalSetup: "./src/tests/support/globalSetup.js",
+    // All test files share one SQLite database, so run them one at a time.
+    fileParallelism: false,
     coverage: {
       reporter: ["text", "html"],
     },

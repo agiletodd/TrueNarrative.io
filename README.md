@@ -69,7 +69,7 @@ The [architecture guide](docs/architecture.md) covers routes, database relations
 
 ## Getting started
 
-Use **Node.js 22 or newer**, npm, and Git. SQLite runs locally without a separate database server.
+Use **Node.js 22.13 or newer** (any 24.x or later also works), npm, and Git. SQLite runs locally without a separate database server.
 
 ```bash
 git clone https://github.com/agiletodd/TrueNarrative.io.git
@@ -97,11 +97,15 @@ For classroom participation, fork the repository and clone your fork as describe
 From the root:
 
 ```bash
-npm test           # backend Vitest suite (uses its own test settings, not backend/.env)
+npm test           # backend API tests, then frontend component tests
 npm run build      # production frontend build into frontend/dist
 ```
 
-The backend currently has utility tests covering JWT signing/verification and user-response formatting. There are no API integration or browser tests yet; see [the engineering roadmap](docs/engineering-roadmap.md). `npm --prefix backend run test:coverage` adds a coverage report.
+- **Backend:** API integration tests send real HTTP requests to the Express app (Supertest) backed by a real SQLite database, covering authentication, token handling, product ownership, ideas, guest and signed-in voting, comments, and admin access. Each run recreates an isolated `backend/prisma/test.db` and clears it before every test; tests never read `backend/.env` or touch `dev.db`. `npm --prefix backend run test:coverage` adds a coverage report.
+- **Frontend:** a few interaction tests (Vitest, React Testing Library, jsdom) for the idea form, sign-in flow, and route guard.
+- Known gaps are listed as `todo` or expected-failure tests, which name the finding that will fix them.
+
+[GitHub Actions](.github/workflows/ci.yml) runs the same install, tests, and build on pull requests and pushes to `main`.
 
 ## Repository structure
 
@@ -118,18 +122,20 @@ The backend currently has utility tests covering JWT signing/verification and us
 |       |-- controllers/       # Feature handlers and database queries
 |       |-- middleware/        # Required/optional auth and admin checks
 |       |-- routes/            # API endpoint definitions
-|       |-- tests/             # Utility tests
+|       |-- tests/             # API integration tests (api/), unit tests, test setup (support/)
 |       `-- utils/             # JWT and user-response helpers
 |-- frontend/
 |   |-- public/                # Browser static assets
 |   `-- src/
 |       |-- components/        # Auth, Products, Ideas, Admin, shared UI
 |       |-- context/           # Authentication state
-|       |-- hooks/             # API, voting, and guest-ID hooks
+|       |-- hooks/             # Voting and guest-ID hooks
 |       |-- lib/               # Axios configuration
+|       |-- tests/             # Component tests (Vitest + React Testing Library)
 |       |-- pages/             # Home page
 |       |-- router.jsx         # Browser routes and access wrappers
 |       `-- main.jsx           # React entry point and providers
+|-- .github/workflows/ci.yml   # CI: install, tests, frontend build
 |-- docs/
 |   |-- student-setup.md       # Pre-class onboarding and verification
 |   |-- architecture.md        # Technical reference and known limitations

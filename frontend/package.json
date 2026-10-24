@@ -3,11 +3,13 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": "^22.13.0 || >=24.0.0"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "preview": "vite preview",
     "start": "serve -s dist"
   },
@@ -21,11 +23,16 @@
     "serve": "^14.2.4"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
     "@vitejs/plugin-react": "^4.5.2",
     "autoprefixer": "^10.4.21",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.1",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^5.0.5"
   },
   "allowScripts": {
     "esbuild": true

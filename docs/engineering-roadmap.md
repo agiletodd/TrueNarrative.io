@@ -73,13 +73,13 @@ Test a few important behaviors, prioritizing meaningful interactions over snapsh
 
 ### Phase 2 acceptance criteria
 
-- [ ] Meaningful API integration tests exist.
-- [ ] Tests run against isolated data.
-- [ ] Tests pass locally.
-- [ ] GitHub Actions workflow is configured.
-- [ ] CI performs a reproducible installation, testing, and frontend build.
-- [ ] The workflow reports meaningful failures.
-- [ ] CI behavior that cannot be verified locally or by an actual run is marked unverified.
+- [x] Meaningful API integration tests exist.
+- [x] Tests run against isolated data.
+- [x] Tests pass locally.
+- [x] GitHub Actions workflow is configured.
+- [x] CI performs a reproducible installation, testing, and frontend build.
+- [x] The workflow reports meaningful failures.
+- [x] CI behavior that cannot be verified locally or by an actual run is marked unverified.
 
 ---
 

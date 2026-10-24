@@ -121,10 +121,11 @@ CORS only matters when a browser page on another origin calls the API, which is 
 ## Validation and deployment configuration
 
 - The root `setup` script runs `npm ci` for the root, backend, and frontend lockfiles. Recent npm versions run dependency install scripts only for packages listed under `allowScripts` in each `package.json`: Prisma (engine download and client generation) and esbuild. bcrypt's source build is denied because it ships prebuilt binaries; older npm versions ignore the field.
-- Backend `test` runs Vitest with test-only `JWT_SECRET` and `DATABASE_URL` values from `vitest.config.js`; `test:coverage` adds a V8 coverage report. Current tests cover user-response formatting and JWT signing/verification only.
+- Backend `test` runs Vitest with test-only `JWT_SECRET` and `DATABASE_URL` values (`src/tests/support/testEnv.js`). A global setup recreates `prisma/test.db` with `prisma db push --force-reset` (and refuses any other database URL), and each test clears all tables first. API tests in `src/tests/api/` use Supertest against the real Express app, so routing, middleware, validation, and queries are all exercised. Test files run one at a time because they share one SQLite file. `test:coverage` adds a V8 coverage report.
+- Frontend `test` runs Vitest in jsdom with React Testing Library. Tests render real components and context and mock only the HTTP client.
 - Frontend `build` runs `vite build` only; it does not install dependencies. `preview` serves the build locally, and `start` serves it with the pinned `serve` dependency.
 - The Prisma CLI is a pinned backend dependency (6.10.0, matching `@prisma/client`), so builds and startup do not download it.
-- No CI workflow, container configuration, automated browser test suite, frontend test script, or hosting manifest is checked in. The provider switch, backend `start`, and default hosting domains indicate deployment intent, not a reproducible deployment procedure.
+- [ci.yml](../.github/workflows/ci.yml) runs on pull requests and pushes to `main`: Node 22, `npm ci` for all three lockfiles (cached), backend tests, frontend tests, frontend build. It needs no services or secrets. No container configuration, end-to-end browser suite, or hosting manifest is checked in. The provider switch, backend `start`, and default hosting domains indicate deployment intent, not a reproducible deployment procedure.
 
 ### Railway client-generation failure
 
@@ -138,7 +139,6 @@ These observations are documented separately from onboarding. Work to address th
 
 | Area | Evidence in the current implementation | Focused follow-up |
 | --- | --- | --- |
-| Admin response fields | `adminController.js` queries `topUsers` with relation counts but no scalar-field selection, then returns full records, including password hashes | Select only intended response fields and add an API response test. |
 | Account onboarding | Registration route and login navigation are commented out, despite a working registration API and login page | Complete browser onboarding and add an end-to-end account/product walkthrough. |
 | Guest voting | `Ideas.jsx` uses `useVote` without initializing `useGuestId`; the detail page initializes it, but `useVote` reads storage before that initialization on its first render | Initialize identity before vote submission and test a fresh session. Opening the detail page allows a subsequent render to read the ID. |
 | Guest trust and exposure | Vote-status responses accept a caller-supplied guest ID; public comment responses include guest IDs; there is no guest verification, server-side rate limiting, or abuse-control middleware | Define the guest trust model, minimize returned identity fields, and test abuse cases before relying on guest IDs for integrity. |
@@ -146,7 +146,7 @@ These observations are documented separately from onboarding. Work to address th
 | Session handling | Local storage holds tokens; an expired token is not detected by the frontend, which stays signed in while requests fail | Review token-storage tradeoffs and handle 401 responses. |
 | Response consistency | Idea creation and vote responses omit list fields such as `commentCount`; components replace list records with these responses | Define consistent response shapes or refetch/merge deliberately; test behavior after mutations. |
 | Validation and errors | Varying validation and error shapes (`error` vs `message`); no length limits; no pagination on list endpoints | Consistent validation/error contracts and bounded list queries. |
-| Dependencies | `npm audit` reports advisories that need major upgrades: Vitest 3 (dev only), `serve`'s `compression` dependency (frontend runtime), and Tailwind 3's `postcss-selector-parser` (build time) | Upgrade Vitest with the test suite work; replace or patch the `serve` path; evaluate Tailwind 4 separately. |
-| Coverage | Only two utility tests; no authorization, API/database, or browser tests | Prioritize owner isolation, admin response filtering, guest first-use, and vote constraint tests. |
+| Dependencies | `npm audit` reports advisories that need major upgrades: `serve`'s `compression` dependency (frontend runtime) and Tailwind 3's `postcss-selector-parser` (build time) | Replace or patch the `serve` path; evaluate Tailwind 4 separately. |
+| Coverage | API integration tests cover the existing endpoints; frontend tests cover a few components; no end-to-end browser tests | Add tests alongside each workflow change; known gaps are `todo`/expected-failure tests. |
 
 For portfolio presentation, useful next steps are a screenshot of an actual local board, CI for tests and build, and a completed browser onboarding path. A deliberate license choice would clarify reuse; no license file is currently present. These are proposed improvements, not implemented capabilities.
